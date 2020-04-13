@@ -60,6 +60,7 @@
 #include "ble_bas.h"
 #include "ble_hrs.h"
 #include "ble_dis.h"
+#include "ble_ans_c.h"
 #include "ble_conn_params.h"
 #include "sensorsim.h"
 #include "nrf_sdh.h"
@@ -84,8 +85,18 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "ble_gap.h"
+#include "ble_err.h"
 
-#define DEVICE_NAME                         "Nordic_HRM"                            /**< Name of device. Will be included in the advertising data. */
+
+#include "ble_db_discovery.h"
+
+#include "nrf_pwr_mgmt.h"
+
+
+
+
+#define DEVICE_NAME                         "Nordic_MorseCode_Smartwatch"           /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME                   "NordicSemiconductor"                   /**< Manufacturer. Will be passed to Device Information Service. */
 
 #define APP_BLE_OBSERVER_PRIO               3                                       /**< Application's BLE observer priority. You shouldn't need to modify this value. */
@@ -133,15 +144,34 @@
 
 #define OSTIMER_WAIT_FOR_QUEUE              2                                       /**< Number of ticks to wait for the timer queue to be ready */
 
+#define MESSAGE_BUFFER_SIZE             18                                          /**< Size of buffer holding optional messages in notifications. */
+#define BLE_ANS_NB_OF_CATEGORY_ID       10                                          /**< Number of categories. */
+
+typedef enum
+{
+    ALERT_NOTIFICATION_DISABLED, /**< Alert Notifications has been disabled. */
+    ALERT_NOTIFICATION_ENABLED,  /**< Alert Notifications has been enabled. */
+    ALERT_NOTIFICATION_ON,       /**< Alert State is on. */
+} ble_ans_c_alert_state_t;
 
 BLE_BAS_DEF(m_bas);                                                 /**< Battery service instance. */
 BLE_HRS_DEF(m_hrs);                                                 /**< Heart rate service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                           /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                 /**< Advertising module instance. */
+BLE_ANS_C_DEF(m_ans_c);  
+BLE_DB_DISCOVERY_DEF(m_ble_db_discovery);  
+NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                                    /**< BLE GATT Queue instance. */
+               NRF_SDH_BLE_PERIPHERAL_LINK_COUNT,
+               NRF_BLE_GQ_QUEUE_SIZE);      
 
 static uint16_t m_conn_handle         = BLE_CONN_HANDLE_INVALID;    /**< Handle of the current connection. */
 static bool     m_rr_interval_enabled = true;                       /**< Flag for enabling and disabling the registration of new RR interval measurements (the purpose of disabling this is just to test sending HRM without RR interval data. */
+
+
+static uint8_t m_alert_message_buffer[MESSAGE_BUFFER_SIZE];                         /**< Message buffer for optional notify messages. */
+static ble_ans_c_alert_state_t m_new_alert_state    = ALERT_NOTIFICATION_DISABLED;  /**< State that holds the current state of New Alert Notifications, i.e. Enabled, Alert On, Disabled. */
+static ble_ans_c_alert_state_t m_unread_alert_state = ALERT_NOTIFICATION_DISABLED;  /**< State that holds the current state of Unread Alert Notifications, i.e. Enabled, Alert On, Disabled. */
 
 static sensorsim_cfg_t   m_battery_sim_cfg;                         /**< Battery Level sensor simulator configuration. */
 static sensorsim_state_t m_battery_sim_state;                       /**< Battery Level sensor simulator state. */
@@ -155,6 +185,21 @@ static ble_uuid_t m_adv_uuids[] =                                   /**< Univers
     {BLE_UUID_HEART_RATE_SERVICE, BLE_UUID_TYPE_BLE},
     {BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
     {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}
+};
+
+/**@brief String literals for the iOS notification categories. used then printing to UART. */
+static char const * lit_catid[BLE_ANS_NB_OF_CATEGORY_ID] =
+{
+    "Simple alert",
+    "Email",
+    "News",
+    "Incoming call",
+    "Missed call",
+    "SMS/MMS",
+    "Voice mail",
+    "Schedule",
+    "High prioritized alert",
+    "Instant message"
 };
 
 static TimerHandle_t m_battery_timer;                               /**< Definition of battery timer. */
@@ -384,7 +429,7 @@ static void gap_params_init(void)
                                           strlen(DEVICE_NAME));
     APP_ERROR_CHECK(err_code);
 
-    err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_HEART_RATE_SENSOR_HEART_RATE_BELT);
+    err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_GENERIC_WATCH);
     APP_ERROR_CHECK(err_code);
 
     memset(&gap_conn_params, 0, sizeof(gap_conn_params));
@@ -419,6 +464,210 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
+/**@brief Function for handling database discovery events.
+ *
+ * @details This function is callback function to handle events from the database discovery module.
+ *          Depending on the UUIDs that are discovered, this function should forward the events
+ *          to their respective services.
+ *
+ * @param[in] p_event  Pointer to the database discovery event.
+ */
+static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
+{
+    ble_ans_c_on_db_disc_evt(&m_ans_c, p_evt);
+}
+
+/** @brief Database discovery module initialization.
+ */
+static void db_discovery_init(void)
+{
+    ble_db_discovery_init_t db_init;
+
+    memset(&db_init, 0, sizeof(ble_db_discovery_init_t));
+
+    db_init.evt_handler  = db_disc_handler;
+    db_init.p_gatt_queue = &m_ble_gatt_queue;
+
+    ret_code_t err_code = ble_db_discovery_init(&db_init);
+
+    APP_ERROR_CHECK(err_code);
+}
+
+/**@brief Function for setup of alert notifications in central.
+ *
+ * @details This function will be called when a successful connection has been established.
+ */
+static void alert_notification_setup(void)
+{
+    ret_code_t err_code;
+
+    err_code = ble_ans_c_enable_notif_new_alert(&m_ans_c);
+    APP_ERROR_CHECK(err_code);
+
+    m_new_alert_state = ALERT_NOTIFICATION_ENABLED;
+    NRF_LOG_INFO("New Alert State: Enabled.");
+
+    err_code = ble_ans_c_enable_notif_unread_alert(&m_ans_c);
+    APP_ERROR_CHECK(err_code);
+
+    m_unread_alert_state = ALERT_NOTIFICATION_ENABLED;
+    NRF_LOG_INFO("Unread Alert State: Enabled.");
+
+    NRF_LOG_DEBUG("Notifications enabled.");
+}
+
+/**@brief Function for lighting up the LED corresponding to the notification received.
+ *
+ * @param[in]   p_evt   Event containing the notification.
+ */
+static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
+{
+    ret_code_t err_code;
+
+    if (p_evt->uuid.uuid == BLE_UUID_UNREAD_ALERT_CHAR)
+    {
+        if (m_unread_alert_state == ALERT_NOTIFICATION_ENABLED)
+        {
+            err_code = bsp_indication_set(BSP_INDICATE_ALERT_1);
+            APP_ERROR_CHECK(err_code);
+            m_unread_alert_state = ALERT_NOTIFICATION_ON;
+            NRF_LOG_INFO("Unread Alert state: On.");
+            NRF_LOG_INFO("  Category:                 %s",
+                         (uint32_t)lit_catid[p_evt->data.alert.alert_category]);
+            NRF_LOG_INFO("  Number of unread alerts:  %d",
+                         p_evt->data.alert.alert_category_count);
+        }
+    }
+    else if (p_evt->uuid.uuid == BLE_UUID_NEW_ALERT_CHAR)
+    {
+        if (m_new_alert_state == ALERT_NOTIFICATION_ENABLED)
+        {
+            err_code = bsp_indication_set(BSP_INDICATE_ALERT_0);
+            APP_ERROR_CHECK(err_code);
+            m_new_alert_state = ALERT_NOTIFICATION_ON;
+            NRF_LOG_INFO("New Alert state: On.");
+            NRF_LOG_INFO("  Category:                 %s",
+                         (uint32_t)lit_catid[p_evt->data.alert.alert_category]);
+            NRF_LOG_INFO("  Number of new alerts:     %d",
+                         p_evt->data.alert.alert_category_count);
+            NRF_LOG_INFO("  Text String Information:  %s",
+                         (uint32_t)p_evt->data.alert.p_alert_msg_buf);
+        }
+    }
+    else
+    {
+        // Only Unread and New Alerts exists, thus do nothing.
+    }
+}
+
+/**@brief Function for reading supported alert notifications in central.
+ *
+ * @details This function will be called when a connection has been established.
+ */
+static void supported_alert_notification_read(void)
+{
+    NRF_LOG_DEBUG("Read supported Alert Notification characteristics on the connected peer.");
+
+    ret_code_t err_code;
+
+    err_code = ble_ans_c_new_alert_read(&m_ans_c);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = ble_ans_c_unread_alert_read(&m_ans_c);
+    APP_ERROR_CHECK(err_code);
+
+}
+
+/**@brief Function for setup of alert notifications in central.
+ *
+ * @details This function will be called when supported alert notification and
+ *          supported unread alert notifications has been fetched.
+ *
+ * @param[in] p_evt  Event containing the response with supported alert types.
+ */
+static void control_point_setup(ble_ans_c_evt_t * p_evt)
+{
+    uint32_t                err_code;
+    ble_ans_control_point_t setting;
+
+    if (p_evt->uuid.uuid == BLE_UUID_SUPPORTED_UNREAD_ALERT_CATEGORY_CHAR)
+    {
+        setting.command  = ANS_ENABLE_UNREAD_CATEGORY_STATUS_NOTIFICATION;
+        setting.category = (ble_ans_category_id_t)p_evt->data.alert.alert_category;
+        NRF_LOG_DEBUG("Unread status notification enabled for received categories.");
+    }
+    else if (p_evt->uuid.uuid == BLE_UUID_SUPPORTED_NEW_ALERT_CATEGORY_CHAR)
+    {
+        setting.command  = ANS_ENABLE_NEW_INCOMING_ALERT_NOTIFICATION;
+        setting.category = (ble_ans_category_id_t)p_evt->data.alert.alert_category;
+        NRF_LOG_DEBUG("New incoming notification enabled for received categories.");
+    }
+    else
+    {
+        return;
+    }
+
+    err_code = ble_ans_c_control_point_write(&m_ans_c, &setting);
+    APP_ERROR_CHECK(err_code);
+}
+
+
+/**@brief Function for handling the Alert Notification Service Client.
+ *
+ * @details This function will be called for all events in the Alert Notification Client which
+ *          are passed to the application.
+ *
+ * @param[in]   p_evt   Event received from the Alert Notification Service Client.
+ */
+static void on_ans_c_evt(ble_ans_c_evt_t * p_evt)
+{
+    ret_code_t err_code;
+
+    switch (p_evt->evt_type)
+    {
+        case BLE_ANS_C_EVT_NOTIFICATION:
+            handle_alert_notification(p_evt);
+            NRF_LOG_DEBUG("Alert Notification received from server, UUID: %X.", p_evt->uuid.uuid);
+            break; // BLE_ANS_C_EVT_NOTIFICATION
+
+        case BLE_ANS_C_EVT_DISCOVERY_COMPLETE:
+            NRF_LOG_DEBUG("Alert Notification Service discovered on the server.");
+            err_code = ble_ans_c_handles_assign(&m_ans_c,
+                                                p_evt->conn_handle,
+                                                &p_evt->data.service);
+            APP_ERROR_CHECK(err_code);
+            supported_alert_notification_read();
+            alert_notification_setup();
+            break; // BLE_ANS_C_EVT_DISCOVERY_COMPLETE
+
+        case BLE_ANS_C_EVT_READ_RESP:
+            NRF_LOG_DEBUG("Alert Setup received from server, UUID: %X.", p_evt->uuid.uuid);
+            control_point_setup(p_evt);
+            break; // BLE_ANS_C_EVT_READ_RESP
+
+        case BLE_ANS_C_EVT_DISCONN_COMPLETE:
+            m_new_alert_state    = ALERT_NOTIFICATION_DISABLED;
+            m_unread_alert_state = ALERT_NOTIFICATION_DISABLED;
+
+            err_code = bsp_indication_set(BSP_INDICATE_ALERT_OFF);
+            APP_ERROR_CHECK(err_code);
+            break; // BLE_ANS_C_EVT_DISCONN_COMPLETE
+
+        default:
+            // No implementation needed.
+            break;
+    }
+}
+
+/**@brief Function for handling the Alert Notification Service Client errors.
+ *
+ * @param[in]   nrf_error   Error code containing information about what went wrong.
+ */
+static void alert_notification_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
+
 
 /**@brief Function for initializing services that will be used by the application.
  *
@@ -430,6 +679,7 @@ static void services_init(void)
     ble_hrs_init_t     hrs_init;
     ble_bas_init_t     bas_init;
     ble_dis_init_t     dis_init;
+    ble_ans_c_init_t     ans_c_init;
     nrf_ble_qwr_init_t qwr_init = {0};
     uint8_t            body_sensor_location;
 
@@ -480,7 +730,21 @@ static void services_init(void)
 
     err_code = ble_dis_init(&dis_init);
     APP_ERROR_CHECK(err_code);
+
+    // Initialize the Alert Notification Service Client.
+    memset(&ans_c_init, 0, sizeof(ans_c_init));
+    memset(m_alert_message_buffer, 0, MESSAGE_BUFFER_SIZE);
+
+    ans_c_init.evt_handler         = on_ans_c_evt;
+    ans_c_init.message_buffer_size = MESSAGE_BUFFER_SIZE;
+    ans_c_init.p_message_buffer    = m_alert_message_buffer;
+    ans_c_init.error_handler       = alert_notification_error_handler;
+    ans_c_init.p_gatt_queue        = &m_ble_gatt_queue;
+
+    err_code = ble_ans_c_init(&m_ans_c, &ans_c_init);
+    APP_ERROR_CHECK(err_code);
 }
+
 
 
 /**@brief Function for initializing the sensor simulators. */
@@ -651,6 +915,9 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_CONNECTED:
             NRF_LOG_INFO("Connected");
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+            APP_ERROR_CHECK(err_code);
+            m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+            err_code = ble_db_discovery_start(&m_ble_db_discovery, m_conn_handle);
             APP_ERROR_CHECK(err_code);
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
@@ -958,6 +1225,7 @@ int main(void)
     gap_params_init();
     gatt_init();
     advertising_init();
+    db_discovery_init();
     services_init();
     sensor_simulator_init();
     conn_params_init();

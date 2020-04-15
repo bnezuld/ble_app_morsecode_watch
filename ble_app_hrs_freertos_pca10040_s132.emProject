@@ -152,6 +152,7 @@
       <file file_name="components/softdevice/common/nrf_sdh_ble.c" />
       <file file_name="components/softdevice/common/nrf_sdh_freertos.c" />
       <file file_name="components/softdevice/common/nrf_sdh_soc.c" />
+      <file file_name="components/softdevice/common/nrf_sdh_freertos.h" />
     </folder>
   </project>
   <configuration Name="Release" c_preprocessor_definitions="NDEBUG" />

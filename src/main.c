@@ -213,7 +213,6 @@ static TaskHandle_t m_logger_thread;                                /**< Definit
 
 static void advertising_start(void * p_erase_bonds);
 
-
 /**@brief Callback function for asserts in the SoftDevice.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -550,6 +549,8 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
                          (uint32_t)lit_catid[p_evt->data.alert.alert_category]);
             NRF_LOG_INFO("  Number of new alerts:     %d",
                          p_evt->data.alert.alert_category_count);
+            NRF_LOG_INFO("  Text String Length:  %s",
+                         (uint32_t)p_evt->data.alert.alert_msg_length);
             NRF_LOG_INFO("  Text String Information:  %s",
                          (uint32_t)p_evt->data.alert.p_alert_msg_buf);
         }
@@ -997,7 +998,7 @@ static void ble_stack_init(void)
 static void bsp_event_handler(bsp_event_t event)
 {
     ret_code_t err_code;
-
+    NRF_LOG_DEBUG("bsp_event_handler Entered");
     switch (event)
     {
         case BSP_EVENT_SLEEP:
@@ -1023,10 +1024,36 @@ static void bsp_event_handler(bsp_event_t event)
                 }
             }
             break;
+         case BSP_EVENT_KEY_0:
+            NRF_LOG_DEBUG("Button 1 pushed.");
+            ISR_buttonPressed();
+            NRF_LOG_DEBUG("ISR_buttonPressed called Button 1 finished");
+            /*if (m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
+            {
+                new_alert_state_toggle();
+            }*/
+            break;
+
+        case BSP_EVENT_KEY_1:
+            NRF_LOG_DEBUG("Button 2 pushed.");
+            /*if (m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
+            {
+                unread_alert_state_toggle();
+            }*/
+            break;
+
+        case BSP_EVENT_KEY_2:
+            NRF_LOG_DEBUG("Button 3 pushed.");
+            /*if (m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
+            {
+                all_alert_notify_request();
+            }*/
+            break;
 
         default:
             break;
     }
+    NRF_LOG_DEBUG("bsp_event_handler Exited");
 }
 
 

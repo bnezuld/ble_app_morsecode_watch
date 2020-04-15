@@ -1,26 +1,54 @@
 <!DOCTYPE CrossStudio_Session_File>
 <session>
  <Bookmarks/>
- <Breakpoints groups="Breakpoints" active_group="Breakpoints"/>
+ <Breakpoints groups="Breakpoints" active_group="Breakpoints">
+  <Exceptions set="MemManage;UsageFault_Coprocessor;UsageFault_CheckingError;UsageFault_StateError;BusFault;ExceptionEntryReturnFault;HardFault"/>
+ </Breakpoints>
  <ExecutionProfileWindow/>
  <FrameBufferWindow>
   <FrameBufferWindow bufferHeight="-1" addressSpace="" addressText="" bufferWidth="-1"/>
  </FrameBufferWindow>
- <Memory1/>
- <Memory2/>
- <Memory3/>
- <Memory4/>
+ <Memory1>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ble_app_hrs_freertos_pca10040_s132" radix="16" sizeText="" addressText=""/>
+ </Memory1>
+ <Memory2>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ble_app_hrs_freertos_pca10040_s132" radix="16" sizeText="" addressText=""/>
+ </Memory2>
+ <Memory3>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ble_app_hrs_freertos_pca10040_s132" radix="16" sizeText="" addressText=""/>
+ </Memory3>
+ <Memory4>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ble_app_hrs_freertos_pca10040_s132" radix="16" sizeText="" addressText=""/>
+ </Memory4>
  <Project>
   <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132"/>
   <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132"/>
   <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;Application"/>
   <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;Board Definition"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;Board Support"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;None"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;nRF_BLE"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;nRF_BLE_Services"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;nRF_Drivers"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;nRF_Libraries"/>
   <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;nRF_Log"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;nRF_Segger_RTT"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;nRF_SoftDevice"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;Segger Startup Files"/>
+  <ProjectSessionItem path="ble_app_hrs_freertos_pca10040_s132;ble_app_hrs_freertos_pca10040_s132;Third Parties"/>
  </Project>
- <Register1/>
- <Register2/>
- <Register3/>
- <Register4/>
+ <Register1>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ble_app_hrs_freertos_pca10040_s132" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register1>
+ <Register2>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ble_app_hrs_freertos_pca10040_s132" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register2>
+ <Register3>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ble_app_hrs_freertos_pca10040_s132" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register3>
+ <Register4>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ble_app_hrs_freertos_pca10040_s132" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register4>
  <Threads>
   <ThreadsWindow showLists=""/>
  </Threads>
@@ -39,6 +67,29 @@
  <Watch4>
   <Watches active="0" update="Never"/>
  </Watch4>
- <Files/>
- <ARMCrossStudioWindow activeProject="ble_app_hrs_freertos_pca10040_s132" fileDialogDefaultFilter="" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/Brandon/Documents/SEGGER Embedded Studio for ARM Projects/ble_app_morsecode_Watch/components/libraries/log/src" debugSearchPath="" autoConnectCapabilities="3199"/>
+ <Files>
+  <SessionOpenFile windowGroup="DockEditLeft" x="47" y="1216" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="src/main.c" selected="1" top="1203" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="29" y="7920" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="config/sdk_config.h" selected="0" top="7904" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="174" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/src/main.c" useBinaryEdit="0" left="0" path="components/ble/ble_services/ble_ans_c/ble_ans_c.h" selected="0" top="150" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="308" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/ble/ble_services/ble_ans_c/ble_ans_c.c" selected="0" top="273" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="57" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/libraries/util/sdk_common.h" selected="0" top="35" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="51" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="external/segger_rtt/SEGGER_RTT_Syscalls_SES.c" selected="0" top="36" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="77" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/ble/ble_db_discovery/ble_db_discovery.h" selected="0" top="35" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="574" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/ble/nrf_ble_gq/nrf_ble_gq.c" selected="0" top="546" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="35" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/libraries/queue/nrf_queue.c" selected="0" top="12" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="73" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/ble/ble_services/ble_ans_c/ble_ans_c.c" useBinaryEdit="0" left="0" path="components/softdevice/s132/headers/ble.h" selected="0" top="67" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="168" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/ble/ble_services/ble_ans_c/ble_ans_c.c" useBinaryEdit="0" left="0" path="components/softdevice/s132/headers/ble_gattc.h" selected="0" top="138" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="99" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/libraries/util/app_error_weak.c" selected="0" top="27" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="674" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/ble/peer_manager/peer_manager_handler.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="23" y="127" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/src/main.c" useBinaryEdit="0" left="0" path="components/softdevice/common/nrf_sdh_freertos.c" selected="0" top="127" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="99" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/external/freertos/source/tasks.c" useBinaryEdit="0" left="0" path="config/FreeRTOSConfig.h" selected="0" top="89" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="68" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/libraries/util/app_util_platform.h" selected="0" top="45" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="135" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="modules/nrfx/mdk/ses_startup_nrf52.s" selected="0" top="110" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="24" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="modules/nrfx/mdk/system_nrf52.c" selected="0" top="282" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="606" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/modules/nrfx/mdk/ses_startup_nrf52.s" useBinaryEdit="0" left="0" path="modules/nrfx/drivers/src/nrfx_gpiote.c" selected="0" top="584" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="503" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/libraries/bsp/bsp.c" selected="0" top="490" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="86" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/libraries/bsp/bsp.c" useBinaryEdit="0" left="0" path="components/boards/pca10040.h" selected="0" top="64" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="270" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/libraries/bsp/bsp.c" useBinaryEdit="0" left="0" path="components/libraries/button/app_button.c" selected="0" top="238" codecName="Default"/>
+ </Files>
+ <ARMCrossStudioWindow activeProject="ble_app_hrs_freertos_pca10040_s132" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/libraries/queue" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

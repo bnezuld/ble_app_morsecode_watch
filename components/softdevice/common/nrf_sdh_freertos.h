@@ -60,9 +60,10 @@ typedef void (*nrf_sdh_freertos_task_hook_t)(void * p_context);
  */
 void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook, void * p_context);
 
-/**
+/**@brief   Function for dealing with button pressed event
  * @}
  */
+void ISR_buttonPressed();
 
 
 #ifdef __cplusplus

@@ -148,18 +148,18 @@ static void PollingTask( void *pvParameters )
             if( xSemaphoreTake( semaphorePolling, ( TickType_t ) 10 ) == pdTRUE ){
                 //xTimerStop(buttonReleaseTimer, 0);
 
-                //TickType_t endTicks, difference;
+                TickType_t endTicks, difference;
                 /* Record button press */
-                //difference = xTaskGetTickCount() - startTicks;
+                difference = xTaskGetTickCount() - startTicks;
 
-                //buttonRecord.buttonState = 0;//time from when it was released
-                //buttonRecord.time = difference;
-                //xQueueSend( buttonQueue, &buttonRecord, 0 );
+                buttonRecord.buttonState = 0;//time from when it was released
+                buttonRecord.time = difference;
+                xQueueSend( buttonQueue, &buttonRecord, 0 );
 
                 //turn on buzzer
                 //GPIO_BUZZER_PORT->BSRR = (uint32_t)GPIO_BUZZER;
 
-                //startTicks = xTaskGetTickCount();
+                startTicks = xTaskGetTickCount();
 
                 /* Buton release polling */
                 /*while(GPIO_ReadInputDataBit(GPIOA, GPIO_PIN_0) != Bit_RESET){
@@ -174,25 +174,25 @@ static void PollingTask( void *pvParameters )
                 //turn buzzer off maybe switch this to after the vTaskDelayUntil
                 //GPIO_BUZZER_PORT->BRR = (uint32_t)GPIO_BUZZER;// << 16U;
 
-                //endTicks = xTaskGetTickCount();
-                //difference = endTicks - startTicks;
+                endTicks = xTaskGetTickCount();
+                difference = endTicks - startTicks;
 
-                //buttonRecord.buttonState = 1;
-                //buttonRecord.time = difference;
-                //xQueueSend( buttonQueue, &buttonRecord, 1);
+                buttonRecord.buttonState = 1;
+                buttonRecord.time = difference;
+                xQueueSend( buttonQueue, &buttonRecord, 1);
 
                 //start Timer, to call the translate task
                 //xTimerReset(buttonReleaseTimer, 0);
                 //xTimerStart(buttonReleaseTimer, 0);
 
                 //record start ticks
-                //startTicks = xTaskGetTickCount();
+                startTicks = xTaskGetTickCount();
 
                 //block so ISR semaphore in ISR cannot be triggerd for a period of time
-                //vTaskDelay(50);///(1.0f/configTICK_RATE_HZ));
+                vTaskDelay(50);
 
                 //release semaphoreISR (giving the semaphore so ISR can happen and give this task the semaphore it needs)
-                //xSemaphoreGive( semaphoreISR );
+                xSemaphoreGive( semaphoreISR );
             }
         }
     }

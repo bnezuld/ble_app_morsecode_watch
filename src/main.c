@@ -51,6 +51,7 @@
 #include <string.h>
 #include "nordic_common.h"
 #include "nrf.h"
+#include "nrf_drv_gpiote.h"
 #include "app_error.h"
 #include "ble.h"
 #include "ble_hci.h"
@@ -70,7 +71,7 @@
 #include "app_timer.h"
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
-#include "bsp_btn_ble.h"
+//#include "bsp_btn_ble.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
@@ -146,6 +147,9 @@
 
 #define MESSAGE_BUFFER_SIZE             18                                          /**< Size of buffer holding optional messages in notifications. */
 #define BLE_ANS_NB_OF_CATEGORY_ID       10                                          /**< Number of categories. */
+
+#define PIN_OUT 17
+#define PIN_IN 13
 
 typedef enum
 {
@@ -527,8 +531,8 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
     {
         if (m_unread_alert_state == ALERT_NOTIFICATION_ENABLED)
         {
-            err_code = bsp_indication_set(BSP_INDICATE_ALERT_1);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ALERT_1);
+            //APP_ERROR_CHECK(err_code);
             m_unread_alert_state = ALERT_NOTIFICATION_ON;
             NRF_LOG_INFO("Unread Alert state: On.");
             NRF_LOG_INFO("  Category:                 %s",
@@ -541,8 +545,8 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
     {
         if (m_new_alert_state == ALERT_NOTIFICATION_ENABLED)
         {
-            err_code = bsp_indication_set(BSP_INDICATE_ALERT_0);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ALERT_0);
+            //APP_ERROR_CHECK(err_code);
             m_new_alert_state = ALERT_NOTIFICATION_ON;
             NRF_LOG_INFO("New Alert state: On.");
             NRF_LOG_INFO("  Category:                 %s",
@@ -650,8 +654,8 @@ static void on_ans_c_evt(ble_ans_c_evt_t * p_evt)
             m_new_alert_state    = ALERT_NOTIFICATION_DISABLED;
             m_unread_alert_state = ALERT_NOTIFICATION_DISABLED;
 
-            err_code = bsp_indication_set(BSP_INDICATE_ALERT_OFF);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ALERT_OFF);
+            //APP_ERROR_CHECK(err_code);
             break; // BLE_ANS_C_EVT_DISCONN_COMPLETE
 
         default:
@@ -861,12 +865,12 @@ static void sleep_mode_enter(void)
 {
     ret_code_t err_code;
 
-    err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-    APP_ERROR_CHECK(err_code);
+    //err_code = bsp_indication_set(BSP_INDICATE_IDLE);
+    //APP_ERROR_CHECK(err_code);
 
     // Prepare wakeup buttons.
-    err_code = bsp_btn_ble_sleep_mode_prepare();
-    APP_ERROR_CHECK(err_code);
+    //err_code = bsp_btn_ble_sleep_mode_prepare();
+    //APP_ERROR_CHECK(err_code);
 
     // Go to system-off mode (this function will not return; wakeup will cause a reset).
     err_code = sd_power_system_off();
@@ -888,8 +892,8 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     {
         case BLE_ADV_EVT_FAST:
             NRF_LOG_INFO("Fast advertising.");
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
+            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_IDLE:
@@ -915,8 +919,8 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
     {
         case BLE_GAP_EVT_CONNECTED:
             NRF_LOG_INFO("Connected");
-            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+            //APP_ERROR_CHECK(err_code);
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = ble_db_discovery_start(&m_ble_db_discovery, m_conn_handle);
             APP_ERROR_CHECK(err_code);
@@ -990,12 +994,41 @@ static void ble_stack_init(void)
     NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
 }
 
+void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+{
+    nrf_drv_gpiote_out_toggle(PIN_OUT);
+}
+/**
+ * @brief Function for configuring: PIN_IN pin for input, PIN_OUT pin for output,
+ * and configures GPIOTE to give an interrupt on pin change.
+ */
+static void gpio_init(void)
+{
+    ret_code_t err_code;
+
+    err_code = nrf_drv_gpiote_init();
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
+
+    err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
+    in_config.pull = NRF_GPIO_PIN_PULLUP;
+
+    err_code = nrf_drv_gpiote_in_init(PIN_IN, &in_config, in_pin_handler);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_in_event_enable(PIN_IN, true);
+}
+
 
 /**@brief Function for handling events from the BSP module.
  *
  * @param[in]   event   Event generated by button press.
  */
-static void bsp_event_handler(bsp_event_t event)
+/*static void bsp_event_handler(bsp_event_t event)
 {
     ret_code_t err_code;
     NRF_LOG_DEBUG("bsp_event_handler Entered");
@@ -1026,12 +1059,12 @@ static void bsp_event_handler(bsp_event_t event)
             break;
          case BSP_EVENT_KEY_0:
             NRF_LOG_DEBUG("Button 1 pushed.");
-            ISR_buttonPressed();
-            NRF_LOG_DEBUG("ISR_buttonPressed called Button 1 finished");
+            //ISR_buttonPressed();
+            //NRF_LOG_DEBUG("ISR_buttonPressed called Button 1 finished");
             /*if (m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
             {
                 new_alert_state_toggle();
-            }*/
+            }
             break;
 
         case BSP_EVENT_KEY_1:
@@ -1039,7 +1072,7 @@ static void bsp_event_handler(bsp_event_t event)
             /*if (m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
             {
                 unread_alert_state_toggle();
-            }*/
+            }
             break;
 
         case BSP_EVENT_KEY_2:
@@ -1047,14 +1080,14 @@ static void bsp_event_handler(bsp_event_t event)
             /*if (m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
             {
                 all_alert_notify_request();
-            }*/
+            }
             break;
 
         default:
             break;
     }
     NRF_LOG_DEBUG("bsp_event_handler Exited");
-}
+}*/
 
 
 /**@brief Function for the Peer Manager initialization. */
@@ -1144,7 +1177,7 @@ static void log_init(void)
  *
  * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
  */
-static void buttons_leds_init(bool * p_erase_bonds)
+/*static void buttons_leds_init(bool * p_erase_bonds)
 {
     ret_code_t err_code;
     bsp_event_t startup_event;
@@ -1156,7 +1189,7 @@ static void buttons_leds_init(bool * p_erase_bonds)
     APP_ERROR_CHECK(err_code);
 
     *p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
-}
+}*/
 
 
 /**@brief Function for starting advertising. */
@@ -1248,7 +1281,7 @@ int main(void)
 
     // Initialize modules.
     timers_init();
-    buttons_leds_init(&erase_bonds);
+    //buttons_leds_init(&erase_bonds);
     gap_params_init();
     gatt_init();
     advertising_init();
@@ -1257,6 +1290,7 @@ int main(void)
     sensor_simulator_init();
     conn_params_init();
     peer_manager_init();
+    gpio_init();
     application_timers_start();
 
     // Create a FreeRTOS task for the BLE stack.

@@ -48,6 +48,8 @@
 #include "queue.h"
 #include "semphr.h"
 
+#include "TranslateMorseCode.h"
+
 #define NRF_LOG_MODULE_NAME nrf_sdh_freertos
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
@@ -66,8 +68,12 @@ static QueueHandle_t buttonQueue = NULL,
 		displayQueue = NULL,
 		//uart1 queue: queues individual characters to be put together and then queued(for notifications)
 		uart1Queue = NULL;
-static SemaphoreHandle_t  semaphorePolling = NULL, semaphoreISR = NULL, semaphoreSendMessage = NULL, semaphoreStopSendMessage = NULL;
-static TimerHandle_t buttonReleaseTimer = NULL, DisplaySpaceTimer = NULL, DisplayBeepTimer = NULL;
+
+static SemaphoreHandle_t  semaphoreButtonPressed = NULL, semaphoreButtonPressActive = NULL,
+                          semaphoreButtonReleased = NULL, semaphoreButtonReleaseActive = NULL,
+                          semaphoreSendMessage = NULL, semaphoreStopSendMessage = NULL;
+
+static TimerHandle_t buttonReleasedTimer = NULL, buttonPressedTimer = NULL, DisplaySpaceTimer = NULL, DisplayBeepTimer = NULL;
 
 static TaskHandle_t                 m_softdevice_task,              //!< Reference to SoftDevice FreeRTOS task.
                                     RecordButtonPressesTask = NULL;  
@@ -109,27 +115,64 @@ static void softdevice_task(void * pvParameter)
     }
 }
 
-static void TranslateMorseCode( TimerHandle_t xTimer )
+static void TranslateMorseCode()
 {
     //stop recorButtonPresses task(can i use semaphore, i think beter to do this since is activated by a timer, block time must be zero if using semaphore)
     //vTaskSuspend(RecordButtonPressesTask);
-    xSemaphoreTake(semaphoreISR, 0);//try to clear the semaphore for the ISR
-    xSemaphoreTake(semaphorePolling, 0);//try to clear the semaphore for the ISR
 
-    char* message = "i";//TranslateSelf();
+    //try to take semaphores so tasks do not start(could maybe suspend the task until finished)
+    xSemaphoreTake(semaphoreButtonPressActive, 0);
+    xSemaphoreTake(semaphoreButtonPressed, 0);
+    xSemaphoreTake(semaphoreButtonReleaseActive, 0);
+    xSemaphoreTake(semaphoreButtonReleased, 0);
 
-    xQueueSend( messageQueue, &message, 1);
+    char* message = TranslateSelf();
+    NRF_LOG_DEBUG("translate MorseCode %s", message);
+    
+    //xQueueSend( messageQueue, &message, 1);
 
     //start recorButtonPresses task
     //vTaskResume(RecordButtonPressesTask);
-    xSemaphoreGive(semaphoreISR);//try to clear the semaphore for the ISR
+    xSemaphoreGive(semaphoreButtonPressActive);
 }
 
-void ISR_buttonPressed()
+static void ButtonReleased_handler( TimerHandle_t xTimer )
+{
+    uint8_t ulCount = ( uint8_t ) pvTimerGetTimerID( xTimer );
+    ulCount++;
+    vTimerSetTimerID( xTimer, ( void * ) ulCount );
+    if(ulCount > 9)
+    {
+        xTimerStop(xTimer, 0);
+        TranslateMorseCode();
+    }
+}
+
+static void ButtonPressed_handler( TimerHandle_t xTimer )
+{
+    uint8_t ulCount = ( uint8_t ) pvTimerGetTimerID( xTimer );
+    ulCount++;
+    vTimerSetTimerID( xTimer, ( void * ) ulCount );
+    if(ulCount > 3)
+    {
+        xTimerStop(xTimer, 0);
+    }
+}
+
+void ISRButtonPressed()
 {
     portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
-    if(xSemaphoreTakeFromISR( semaphoreISR, &xHigherPriorityTaskWoken ) == pdTRUE){
-        xSemaphoreGiveFromISR( semaphorePolling, &xHigherPriorityTaskWoken );
+    if(xSemaphoreTakeFromISR( semaphoreButtonPressActive, &xHigherPriorityTaskWoken ) == pdTRUE){
+        xSemaphoreGiveFromISR( semaphoreButtonPressed, &xHigherPriorityTaskWoken );
+    }
+    portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
+}
+
+void ISRButtonReleased()
+{
+    portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+    if(xSemaphoreTakeFromISR( semaphoreButtonReleaseActive, &xHigherPriorityTaskWoken ) == pdTRUE){
+        xSemaphoreGiveFromISR( semaphoreButtonReleased, &xHigherPriorityTaskWoken );
     }
     portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
 }
@@ -141,58 +184,36 @@ static void PollingTask( void *pvParameters )
     for(;;)
     {
         //wait for semaphore from interrupt
-        if( semaphorePolling != NULL )
+        if( semaphoreButtonPressed != NULL )
         {
             /* See if we can obtain the semaphore.  If the semaphore is not
             available wait 10 ticks(can maybe increase this to max so it waits forever) to see if it becomes free. */
-            if( xSemaphoreTake( semaphorePolling, ( TickType_t ) 10 ) == pdTRUE ){
-                //xTimerStop(buttonReleaseTimer, 0);
-
+            if( xSemaphoreTake( semaphoreButtonPressed, portMAX_DELAY) == pdTRUE ){
+                vTimerSetTimerID(buttonPressedTimer, 0u);
+                xTimerStop(buttonReleasedTimer, 0);
+                xTimerStart(buttonPressedTimer, 0);
                 TickType_t endTicks, difference;
-                /* Record button press */
-                difference = xTaskGetTickCount() - startTicks;
 
-                buttonRecord.buttonState = 0;//time from when it was released
-                buttonRecord.time = difference;
-                xQueueSend( buttonQueue, &buttonRecord, 0 );
+                uint8_t unheldCount = ( uint8_t ) pvTimerGetTimerID( buttonReleasedTimer );
+                ButtonPress(unheldCount, 0);
+                NRF_LOG_DEBUG("unheld time: %d", unheldCount);
+                
+                xSemaphoreGive( semaphoreButtonReleaseActive );
+                if( xSemaphoreTake( semaphoreButtonReleased, portMAX_DELAY) == pdTRUE ){
+                    vTimerSetTimerID(buttonReleasedTimer, 0u);
+                    xTimerStop(buttonPressedTimer, 0);
+                    xTimerStart(buttonReleasedTimer, 0);
 
-                //turn on buzzer
-                //GPIO_BUZZER_PORT->BSRR = (uint32_t)GPIO_BUZZER;
+                    uint8_t heldCount = ( uint8_t ) pvTimerGetTimerID( buttonPressedTimer );
+                    ButtonPress(heldCount, 1);
+                    NRF_LOG_DEBUG("held time: %d", heldCount);
+                }
 
-                startTicks = xTaskGetTickCount();
-
-                /* Buton release polling */
-                /*while(GPIO_ReadInputDataBit(GPIOA, GPIO_PIN_0) != Bit_RESET){
-                        //wait for the button to be unpressed(or maybe can connect same button to a interrupt that can release and it will wait for that semaphore?)
-                        TickType_t tmpTicks = xTaskGetTickCount();
-                        vTaskDelayUntil(&tmpTicks, mainQUEUE_SEND_FREQUENCY_MS );
-                        //no operation(used to keep empty while loop working)
-                        asm("nop");
-                }*/
-
-                /* Record button release time*/
-                //turn buzzer off maybe switch this to after the vTaskDelayUntil
-                //GPIO_BUZZER_PORT->BRR = (uint32_t)GPIO_BUZZER;// << 16U;
-
-                endTicks = xTaskGetTickCount();
-                difference = endTicks - startTicks;
-
-                buttonRecord.buttonState = 1;
-                buttonRecord.time = difference;
-                xQueueSend( buttonQueue, &buttonRecord, 1);
-
-                //start Timer, to call the translate task
-                //xTimerReset(buttonReleaseTimer, 0);
-                //xTimerStart(buttonReleaseTimer, 0);
-
-                //record start ticks
-                startTicks = xTaskGetTickCount();
-
-                //block so ISR semaphore in ISR cannot be triggerd for a period of time
-                vTaskDelay(50);
-
-                //release semaphoreISR (giving the semaphore so ISR can happen and give this task the semaphore it needs)
-                xSemaphoreGive( semaphoreISR );
+                //continue to block semaphoreButtonPressed in ISR cannot be triggerd for a period of time
+                //vTaskDelay(30);
+                
+                //release semaphoreButtonPressActive (giving the semaphore so ISR can happen and give this task the semaphore it needs)
+                xSemaphoreGive( semaphoreButtonPressActive );
             }
         }
     }
@@ -206,17 +227,26 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     m_task_hook = hook_fn;
 
     /* Create the timer(s) */
-    //buttonReleaseTimer = xTimerCreate( 	"buttonTimer", 				/* A text name, purely to help debugging. */
-    //                                    20/(1.0f/configTICK_RATE_HZ),/* The timer period, in this case (SPACE_TICK_LENGTH * 10) ms. */
-    //                                    pdFALSE,					/* This is a one-shot timer, so xAutoReload is set to pdFALSE. */
-    //                                    ( void * ) 0,				/* The ID is not used, so can be set to anything. */
-    //                                    TranslateMorseCode);			/* The callback function that switches the LED off. */
+    buttonReleasedTimer = xTimerCreate( 	"ButtonReleased", 				/* A text name, purely to help debugging. */
+                                        100*(1.0/(configTICK_RATE_HZ * (.001f))),/* The timer period, in this case (SPACE_TICK_LENGTH * 10) ms. */
+                                        pdTRUE,					/* This is a one-shot timer, so xAutoReload is set to pdFALSE. */
+                                        ( void * ) 0,				/* The ID is not used, so can be set to anything. */
+                                        ButtonReleased_handler);			/* The callback function that switches the LED off. */
+    buttonPressedTimer = xTimerCreate( 	"ButtonPressed", 				/* A text name, purely to help debugging. */
+                                        100*(1.0/(configTICK_RATE_HZ * (.001f))),/* The timer period, in this case (SPACE_TICK_LENGTH * 10) ms. */
+                                        pdTRUE,					/* This is a one-shot timer, so xAutoReload is set to pdFALSE. */
+                                        ( void * ) 0,				/* The ID is not used, so can be set to anything. */
+                                        ButtonPressed_handler);			/* The callback function that switches the LED off. */
 
     buttonQueue = xQueueCreate( 10, sizeof( struct ButtonPress ) );
     messageQueue = xQueueCreate( 10, sizeof( char* ) );
 
-    semaphorePolling = xSemaphoreCreateBinary();
-    semaphoreISR = xSemaphoreCreateBinary();
+    semaphoreButtonPressed = xSemaphoreCreateBinary();
+    semaphoreButtonPressActive = xSemaphoreCreateBinary();
+    semaphoreButtonReleased = xSemaphoreCreateBinary();
+    semaphoreButtonReleaseActive = xSemaphoreCreateBinary();
+
+    xSemaphoreGive( semaphoreButtonPressActive );
 
     int32_t priority = 1;
                            xTaskCreate(PollingTask,

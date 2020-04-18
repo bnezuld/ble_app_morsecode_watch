@@ -996,7 +996,16 @@ static void ble_stack_init(void)
 
 void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    nrf_drv_gpiote_out_toggle(PIN_OUT);
+    bool is_set = nrf_drv_gpiote_in_is_set(PIN_IN);
+    if(is_set)
+    {
+      ISRButtonReleased();
+      nrf_drv_gpiote_out_clear(PIN_OUT);
+    }else
+    {
+      ISRButtonPressed();
+      nrf_drv_gpiote_out_set(PIN_OUT);
+    }
 }
 /**
  * @brief Function for configuring: PIN_IN pin for input, PIN_OUT pin for output,

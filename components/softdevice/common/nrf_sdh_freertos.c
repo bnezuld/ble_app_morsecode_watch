@@ -127,7 +127,7 @@ static void TranslateMorseCode()
     xSemaphoreTake(semaphoreButtonReleased, 0);
 
     char* message = TranslateSelf();
-    NRF_LOG_DEBUG("translate MorseCode %s", message);
+    NRF_LOG_INFO("translate MorseCode %s", message);
     
     //xQueueSend( messageQueue, &message, 1);
 
@@ -141,7 +141,7 @@ static void ButtonReleased_handler( TimerHandle_t xTimer )
     uint8_t ulCount = ( uint8_t ) pvTimerGetTimerID( xTimer );
     ulCount++;
     vTimerSetTimerID( xTimer, ( void * ) ulCount );
-    if(ulCount > 9)
+    if(ulCount > SPACE_UNITS_END_OF_MESSAGE)
     {
         xTimerStop(xTimer, 0);
         TranslateMorseCode();
@@ -153,7 +153,7 @@ static void ButtonPressed_handler( TimerHandle_t xTimer )
     uint8_t ulCount = ( uint8_t ) pvTimerGetTimerID( xTimer );
     ulCount++;
     vTimerSetTimerID( xTimer, ( void * ) ulCount );
-    if(ulCount > 3)
+    if(ulCount > DASH_UNIT)
     {
         xTimerStop(xTimer, 0);
     }

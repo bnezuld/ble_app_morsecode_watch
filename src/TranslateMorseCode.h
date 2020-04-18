@@ -12,6 +12,7 @@
 #define SPACE_UNITS_DOTS 1
 #define SPACE_UNITS_LETTERS 5
 #define SPACE_UNITS_SPACE 9
+#define SPACE_UNITS_END_OF_MESSAGE 12
 
 #define DASH_UNIT 3//if less than a DASH_UNIT its a DOT_UNIT
 

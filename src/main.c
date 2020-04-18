@@ -104,7 +104,7 @@
 #define APP_BLE_CONN_CFG_TAG                1                                       /**< A tag identifying the SoftDevice BLE configuration. */
 
 #define APP_ADV_INTERVAL                    300                                     /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
-#define APP_ADV_DURATION                    18000                                       /**< The advertising duration (180 seconds) in units of 10 milliseconds. */
+#define APP_ADV_DURATION                    0                                       /**< The advertising duration (180 seconds) in units of 10 milliseconds.or 0 for advertising forever */
 
 #define BATTERY_LEVEL_MEAS_INTERVAL         2000                                    /**< Battery level measurement interval (ms). */
 #define MIN_BATTERY_LEVEL                   81                                      /**< Minimum simulated battery level. */
@@ -871,6 +871,7 @@ static void sleep_mode_enter(void)
     // Prepare wakeup buttons.
     //err_code = bsp_btn_ble_sleep_mode_prepare();
     //APP_ERROR_CHECK(err_code);
+    NRF_LOG_INFO("sleep mode zzz...");
 
     // Go to system-off mode (this function will not return; wakeup will cause a reset).
     err_code = sd_power_system_off();

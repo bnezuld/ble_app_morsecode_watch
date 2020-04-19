@@ -81,7 +81,7 @@ static TaskHandle_t                 m_softdevice_task,              //!< Referen
 static nrf_sdh_freertos_task_hook_t m_task_hook;        //!< A hook function run by the SoftDevice task before entering its loop.
 
 struct ButtonPress{
-	uint32_t time;
+	uint8_t time;
 	uint8_t buttonState;
 };
 
@@ -118,7 +118,7 @@ static void softdevice_task(void * pvParameter)
 static void TranslateMorseCode()
 {
     //stop recorButtonPresses task(can i use semaphore, i think beter to do this since is activated by a timer, block time must be zero if using semaphore)
-    //vTaskSuspend(RecordButtonPressesTask);
+    vTaskSuspend(RecordButtonPressesTask);
 
     //try to take semaphores so tasks do not start(could maybe suspend the task until finished)
     xSemaphoreTake(semaphoreButtonPressActive, 0);
@@ -129,10 +129,10 @@ static void TranslateMorseCode()
     char* message = TranslateSelf();
     NRF_LOG_INFO("translate MorseCode %s", message);
     
-    //xQueueSend( messageQueue, &message, 1);
+    xQueueSend( messageQueue, &message, 1);
 
     //start recorButtonPresses task
-    //vTaskResume(RecordButtonPressesTask);
+    vTaskResume(RecordButtonPressesTask);
     xSemaphoreGive(semaphoreButtonPressActive);
 }
 
@@ -179,7 +179,6 @@ void ISRButtonReleased()
 
 static void PollingTask( void *pvParameters )
 {
-    TickType_t startTicks = 0;
     struct ButtonPress buttonRecord;
     for(;;)
     {
@@ -192,10 +191,11 @@ static void PollingTask( void *pvParameters )
                 vTimerSetTimerID(buttonPressedTimer, 0u);
                 xTimerStop(buttonReleasedTimer, 0);
                 xTimerStart(buttonPressedTimer, 0);
-                TickType_t endTicks, difference;
 
                 uint8_t unheldCount = ( uint8_t ) pvTimerGetTimerID( buttonReleasedTimer );
-                ButtonPress(unheldCount, 0);
+                buttonRecord.buttonState = 0;
+                buttonRecord.time = unheldCount;
+                xQueueSend( buttonQueue, &buttonRecord, 2 );
                 NRF_LOG_DEBUG("unheld time: %d", unheldCount);
                 
                 xSemaphoreGive( semaphoreButtonReleaseActive );
@@ -205,13 +205,12 @@ static void PollingTask( void *pvParameters )
                     xTimerStart(buttonReleasedTimer, 0);
 
                     uint8_t heldCount = ( uint8_t ) pvTimerGetTimerID( buttonPressedTimer );
-                    ButtonPress(heldCount, 1);
+                    buttonRecord.buttonState = 1;
+                    buttonRecord.time = heldCount;
+                    xQueueSend( buttonQueue, &buttonRecord, 2 );
                     NRF_LOG_DEBUG("held time: %d", heldCount);
                 }
-
-                //continue to block semaphoreButtonPressed in ISR cannot be triggerd for a period of time
-                //vTaskDelay(30);
-                
+            
                 //release semaphoreButtonPressActive (giving the semaphore so ISR can happen and give this task the semaphore it needs)
                 xSemaphoreGive( semaphoreButtonPressActive );
             }
@@ -219,6 +218,17 @@ static void PollingTask( void *pvParameters )
     }
 }
 
+static void RecordButtonPresses( void *pvParameters )
+{
+	struct ButtonPress buttonRecord;
+	char *message;
+	for(;;)
+	{
+		//wait for something to be in the queue for portMAX_DELAY and record it
+		xQueueReceive( buttonQueue, &buttonRecord, portMAX_DELAY );
+		ButtonPress(buttonRecord.time,buttonRecord.buttonState);
+	}
+}
 
 void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_context)
 {
@@ -249,6 +259,14 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     xSemaphoreGive( semaphoreButtonPressActive );
 
     int32_t priority = 1;
+
+                          xTaskCreate(RecordButtonPress,
+                                       "RecordBP",
+                                       NRF_BLE_FREERTOS_SDH_TASK_STACK,
+                                       p_context,
+                                       priority++,
+                                       &RecordButtonPressesTask);
+
                            xTaskCreate(PollingTask,
                                        "ButtonPolling",
                                        NRF_BLE_FREERTOS_SDH_TASK_STACK,
@@ -262,6 +280,9 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
                                        p_context,
                                        priority++,
                                        &m_softdevice_task);
+
+                                       	xTaskCreate( RecordButtonPresses, "RecordBP", configMINIMAL_STACK_SIZE, NULL, mainQUEUE_RECEIVE_TASK_PRIORITY, &RecordButtonPressesTask );
+
 
 
     if (xReturned != pdPASS)

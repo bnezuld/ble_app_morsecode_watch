@@ -1024,6 +1024,7 @@ static void gpio_init(void)
     err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config);
     APP_ERROR_CHECK(err_code);
 
+    out_config.init_state = NRF_GPIOTE_INITIAL_VALUE_HIGH;
     err_code = nrf_drv_gpiote_out_init(18, &out_config);
     APP_ERROR_CHECK(err_code);
 

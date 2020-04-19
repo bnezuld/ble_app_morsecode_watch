@@ -250,7 +250,7 @@ static void Menu( void *pvParameters )
 			//try to queue test
 			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
 			{
-				if(xQueueReceive( sendMessageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change sendMessageQueue to some notification queue and wait time to 10
+				if(xQueueReceive( messageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change messageQueue to some notification queue and wait time to 10
 				{
 					//queue message in sendMessage since it is caught in the SendMessage function
 					xQueueSend(sendMessageQueue, &message, portMAX_DELAY);

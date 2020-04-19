@@ -302,7 +302,6 @@ static void DisplayOn( TimerHandle_t xTimer )
 		vTimerSetTimerID( xTimer, ( void * ) ulCount );
 		xTimerReset(DisplayBeepTimer, 0);
 	}
-	//TODO- give semaphore to send message
 }
 
 static void DisplayOff( TimerHandle_t xTimer )
@@ -326,7 +325,6 @@ static void DisplayOff( TimerHandle_t xTimer )
 		vTimerSetTimerID( xTimer, ( void * ) ulCount );
 		xTimerReset(DisplaySpaceTimer, 0);
 	}
-	//TODO- give semaphore to send message
 }
 
 static void SendMessage(void *pvParameters )
@@ -390,7 +388,6 @@ static void SendMessage(void *pvParameters )
 				}
 				free(message);
 				xQueueReceive( sendMessageQueue, &message, portMAX_DELAY );
-				//give semaphore or free queue
 			}
 		}
 	}

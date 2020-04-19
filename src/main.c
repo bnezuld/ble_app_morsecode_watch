@@ -1024,6 +1024,9 @@ static void gpio_init(void)
     err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config);
     APP_ERROR_CHECK(err_code);
 
+    err_code = nrf_drv_gpiote_out_init(18, &out_config);
+    APP_ERROR_CHECK(err_code);
+
     nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
     in_config.pull = NRF_GPIO_PIN_PULLUP;
 

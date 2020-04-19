@@ -40,6 +40,7 @@
 
 #include "nrf_sdh_freertos.h"
 #include "nrf_sdh.h"
+#include "nrf_drv_gpiote.h"
 
 /* Group of FreeRTOS-related includes. */
 #include "FreeRTOS.h"
@@ -230,6 +231,171 @@ static void RecordButtonPresses( void *pvParameters )
 	}
 }
 
+static void Menu( void *pvParameters )
+{
+	char *message = NULL;
+	for(;;){
+		xQueueReceive( messageQueue, &message, portMAX_DELAY );
+		if(strcmp(message, "T") == 0)
+		{
+			free(message);
+		}else if(strcmp(message, "N") == 0)
+		{
+			free(message);
+
+			char* test = malloc(3 * sizeof(char));
+			test[0] = 'N';
+			test[1] = 'O';
+			test[2] = '\0';
+			//try to queue test
+			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
+			{
+				if(xQueueReceive( sendMessageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change sendMessageQueue to some notification queue and wait time to 10
+				{
+					//queue message in sendMessage since it is caught in the SendMessage function
+					xQueueSend(sendMessageQueue, &message, portMAX_DELAY);
+				}
+			}else
+			{
+				free(test);
+			}
+		}else if(strcmp(message, "I") == 0)
+		{
+			free(message);
+			xSemaphoreGive(semaphoreStopSendMessage);
+			xQueueReset(displayQueue);
+		}else if(strcmp(message, "R") == 0)
+		{
+			free(message);
+			//reply to previous Notification?
+		}else
+		{
+			free(message);
+		}
+	}
+}
+
+#pragma region name
+
+
+
+#pragma endregion name
+
+static void DisplayOn( TimerHandle_t xTimer )
+{
+	int8_t ulCount = ( int32_t ) pvTimerGetTimerID( xTimer );
+
+	if(ulCount == 0 )
+	{
+		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
+		{
+			vTimerSetTimerID( DisplaySpaceTimer, ( void * ) ulCount );
+			nrf_drv_gpiote_out_set(18);
+			xTimerReset(DisplaySpaceTimer, 0);
+			return;
+		}else{
+			nrf_drv_gpiote_out_set(18);
+			xSemaphoreGive(semaphoreSendMessage);
+		}
+	}else{
+		ulCount--;
+		vTimerSetTimerID( xTimer, ( void * ) ulCount );
+		xTimerReset(DisplayBeepTimer, 0);
+	}
+	//TODO- give semaphore to send message
+}
+
+static void DisplayOff( TimerHandle_t xTimer )
+{
+	int8_t ulCount = ( int32_t ) pvTimerGetTimerID( xTimer );
+
+	if(ulCount == 0 )
+	{
+		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
+		{
+			vTimerSetTimerID( DisplayBeepTimer, ( void * ) ulCount );
+			nrf_drv_gpiote_out_clear(18);
+			xTimerReset(DisplayBeepTimer, 0);
+			return;
+		}else{
+			nrf_drv_gpiote_out_set(18);
+			xSemaphoreGive(semaphoreSendMessage);
+		}
+	}else{
+		ulCount--;
+		vTimerSetTimerID( xTimer, ( void * ) ulCount );
+		xTimerReset(DisplaySpaceTimer, 0);
+	}
+	//TODO- give semaphore to send message
+}
+
+static void SendMessage(void *pvParameters )
+{
+	char* message;
+	for(;;){
+		//wait for previous write to finish
+		if(xSemaphoreTake( semaphoreSendMessage, portMAX_DELAY ) == pdTRUE)
+		{
+			//check to see if there is a message to be sent
+			if(xQueuePeek( sendMessageQueue, &message, portMAX_DELAY ) == pdTRUE)
+			{
+				//try to take the semaphore if it was given when not sending a message
+				xSemaphoreTake( semaphoreStopSendMessage, 0 );
+				char* tmpMsg = message;
+				int resetTimer = 1;//only reset timer once, although there is still a possible race condition if the queue empties before it finishes processing this message
+				while(*tmpMsg != '\0')
+				{
+					//translate message
+					//queue up message for timers to use
+					char* c =  TranslateCharToMorseCode(*tmpMsg);
+					uint8_t validNextChar = *(tmpMsg + 1) != ' ';
+					while(*c != '\0')
+					{
+						if(xSemaphoreTake( semaphoreStopSendMessage, 0 ) == pdTRUE)
+						{
+							*(tmpMsg + 1) = '\0';
+							break;
+						}
+						int8_t val = -1;
+						if(*c == '.')
+							val = 0;
+						else if(*c == '-')
+							val = 2;
+
+						if(val >= 0){
+							xQueueSend( displayQueue, &val, portMAX_DELAY);//beep
+							val = 0;
+							if(*(c + 1) == '\0')
+							{
+								if(validNextChar == 1){
+									val = SPACE_UNITS_LETTERS;
+									xQueueSend( displayQueue, &val, portMAX_DELAY);//space
+								}
+								else{
+									val = SPACE_UNITS_SPACE;
+									xQueueSend( displayQueue, &val, portMAX_DELAY);//space
+								}
+							}else
+							{
+								xQueueSend( displayQueue, &val, portMAX_DELAY);//space
+							}
+							if(resetTimer == 1){
+								xTimerReset(DisplaySpaceTimer, 0);
+								resetTimer = 0;
+							}
+						}
+						c++;
+					}
+					tmpMsg++;
+				}
+				free(message);
+				xQueueReceive( sendMessageQueue, &message, portMAX_DELAY );
+				//give semaphore or free queue
+			}
+		}
+	}
+}
+
 void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_context)
 {
     NRF_LOG_DEBUG("Creating a SoftDevice task.");
@@ -247,29 +413,58 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
                                         pdTRUE,					/* This is a one-shot timer, so xAutoReload is set to pdFALSE. */
                                         ( void * ) 0,				/* The ID is not used, so can be set to anything. */
                                         ButtonPressed_handler);			/* The callback function that switches the LED off. */
+    DisplaySpaceTimer = xTimerCreate( 	"DisplayOff", 				/* A text name, purely to help debugging. */
+                                        100*(1.0/(configTICK_RATE_HZ * (.001f))),/* The timer period, in this case (SPACE_TICK_LENGTH * 10) ms. */
+                                        pdFALSE,					/* This is a one-shot timer, so xAutoReload is set to pdFALSE. */
+                                        ( void * ) 0,				/* The ID is not used, so can be set to anything. */
+                                        DisplayOff);			/* The callback function that switches the LED off. */
+    DisplayBeepTimer = xTimerCreate( 	"DisplayOn", 				/* A text name, purely to help debugging. */
+                                        100*(1.0/(configTICK_RATE_HZ * (.001f))),/* The timer period, in this case (SPACE_TICK_LENGTH * 10) ms. */
+                                        pdFALSE,					/* This is a one-shot timer, so xAutoReload is set to pdFALSE. */
+                                        ( void * ) 0,				/* The ID is not used, so can be set to anything. */
+                                        DisplayOn);			/* The callback function that switches the LED off. */
 
     buttonQueue = xQueueCreate( 10, sizeof( struct ButtonPress ) );
     messageQueue = xQueueCreate( 10, sizeof( char* ) );
+    sendMessageQueue = xQueueCreate( 1, sizeof( char* ) );
+    displayQueue = xQueueCreate( 10, sizeof( int8_t ) );
 
     semaphoreButtonPressed = xSemaphoreCreateBinary();
     semaphoreButtonPressActive = xSemaphoreCreateBinary();
     semaphoreButtonReleased = xSemaphoreCreateBinary();
     semaphoreButtonReleaseActive = xSemaphoreCreateBinary();
+    semaphoreSendMessage = xSemaphoreCreateBinary();
+    semaphoreStopSendMessage = xSemaphoreCreateBinary();
 
     xSemaphoreGive( semaphoreButtonPressActive );
+    xSemaphoreGive( semaphoreSendMessage );
 
     int32_t priority = 1;
 
-                          xTaskCreate(RecordButtonPress,
+                          xTaskCreate(SendMessage,
+                                       "SendMessage",
+                                       configMINIMAL_STACK_SIZE,
+                                       p_context,
+                                       priority++,
+                                       NULL);
+
+                          xTaskCreate(Menu,
+                                       "Menu",
+                                       configMINIMAL_STACK_SIZE,
+                                       p_context,
+                                       priority++,
+                                       NULL);
+
+                          xTaskCreate(RecordButtonPresses,
                                        "RecordBP",
-                                       NRF_BLE_FREERTOS_SDH_TASK_STACK,
+                                       configMINIMAL_STACK_SIZE,
                                        p_context,
                                        priority++,
                                        &RecordButtonPressesTask);
 
                            xTaskCreate(PollingTask,
                                        "ButtonPolling",
-                                       NRF_BLE_FREERTOS_SDH_TASK_STACK,
+                                       configMINIMAL_STACK_SIZE,
                                        p_context,
                                        priority++,
                                        NULL);
@@ -280,8 +475,6 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
                                        p_context,
                                        priority++,
                                        &m_softdevice_task);
-
-                                       	xTaskCreate( RecordButtonPresses, "RecordBP", configMINIMAL_STACK_SIZE, NULL, mainQUEUE_RECEIVE_TASK_PRIORITY, &RecordButtonPressesTask );
 
 
 

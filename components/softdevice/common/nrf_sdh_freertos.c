@@ -338,6 +338,7 @@ static void SendMessage(void *pvParameters )
 			//check to see if there is a message to be sent
 			if(xQueuePeek( sendMessageQueue, &message, portMAX_DELAY ) == pdTRUE)
 			{
+                                NRF_LOG_DEBUG("SendMessage: \"%s\"", message);
 				//try to take the semaphore if it was given when not sending a message
 				xSemaphoreTake( semaphoreStopSendMessage, 0 );
 				char* tmpMsg = message;
@@ -388,6 +389,11 @@ static void SendMessage(void *pvParameters )
 					}
 					tmpMsg++;
 				}
+                                //timers were not set, and must give semaphoreSendMessage since the timers would normally do that
+                                if(resetTimer == 1)
+                                {
+                                    xSemaphoreGive(semaphoreSendMessage);
+                                }
 				free(message);
 				xQueueReceive( sendMessageQueue, &message, portMAX_DELAY );
 			}

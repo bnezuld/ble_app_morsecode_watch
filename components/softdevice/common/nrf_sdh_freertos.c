@@ -249,7 +249,7 @@ static void Menu( void *pvParameters )
 			//try to queue test
 			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
 			{
-                                uint8_t* notification = getNewAlert_hook();
+                                char* notification = getNewAlert_hook();
                                 xQueueSend(sendMessageQueue, &notification, portMAX_DELAY);
 				//if(xQueueReceive( messageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change messageQueue to some notification queue and wait time to 10
 				//{
@@ -344,6 +344,7 @@ static void SendMessage(void *pvParameters )
 				int resetTimer = 1;//only reset timer once, although there is still a possible race condition if the queue empties before it finishes processing this message
 				while(*tmpMsg != '\0')
 				{
+                                        NRF_LOG_DEBUG("SendMessage char: %c", *tmpMsg);
 					//translate message
 					//queue up message for timers to use
 					char* c =  TranslateCharToMorseCode(*tmpMsg);

@@ -519,11 +519,11 @@ static void alert_notification_setup(void)
     NRF_LOG_DEBUG("Notifications enabled.");
 }
 
-static uint8_t* GetNewAlert()
+static char* GetNewAlert()
 {
     //m_ans_c->message_buffer_size;
     //m_ans_c->p_message_buffer;
-    uint8_t * msg;
+    char * msg;
     msg = malloc(MESSAGE_BUFFER_SIZE);
     //memset(m_alert_message_buffer, 0, MESSAGE_BUFFER_SIZE);
     memcpy(msg,
@@ -1052,7 +1052,7 @@ static void gpio_init(void)
     err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config);
     APP_ERROR_CHECK(err_code);
 
-    out_config.init_state = NRF_GPIOTE_INITIAL_VALUE_HIGH;
+    //out_config.init_state = NRF_GPIOTE_INITIAL_VALUE_HIGH;
     err_code = nrf_drv_gpiote_out_init(18, &out_config);
     APP_ERROR_CHECK(err_code);
 

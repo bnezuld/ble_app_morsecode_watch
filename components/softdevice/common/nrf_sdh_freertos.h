@@ -49,7 +49,7 @@ extern "C" {
 #include "nrf_drv_gpiote.h"
 #include "ble_ans_c.h"
 
-typedef uint8_t* (*ble_getNewAlert) ();
+typedef char* (*ble_getNewAlert) ();
 
 typedef struct{
     ble_getNewAlert  GetNewAlert;

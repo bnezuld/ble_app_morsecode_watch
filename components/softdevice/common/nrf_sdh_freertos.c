@@ -39,8 +39,6 @@
  */
 
 #include "nrf_sdh_freertos.h"
-#include "nrf_sdh.h"
-#include "nrf_drv_gpiote.h"
 
 /* Group of FreeRTOS-related includes. */
 #include "FreeRTOS.h"
@@ -79,8 +77,10 @@ static TimerHandle_t buttonReleasedTimer = NULL, buttonPressedTimer = NULL, Disp
 static TaskHandle_t                 m_softdevice_task,              //!< Reference to SoftDevice FreeRTOS task.
                                     RecordButtonPressesTask = NULL;  
 
+//diffrent handlers that will be called
 static nrf_sdh_freertos_task_hook_t m_task_hook;        //!< A hook function run by the SoftDevice task before entering its loop.
-
+static ble_getNewAlert getNewAlert_hook;        
+     
 struct ButtonPress{
 	uint8_t time;
 	uint8_t buttonState;
@@ -245,16 +245,17 @@ static void Menu( void *pvParameters )
 
 			char* test = malloc(3 * sizeof(char));
 			test[0] = 'N';
-			test[1] = 'O';
-			test[2] = '\0';
+			test[1] = '\0';
 			//try to queue test
 			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
 			{
-				if(xQueueReceive( messageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change messageQueue to some notification queue and wait time to 10
-				{
+                                uint8_t* notification = getNewAlert_hook();
+                                xQueueSend(sendMessageQueue, &notification, portMAX_DELAY);
+				//if(xQueueReceive( messageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change messageQueue to some notification queue and wait time to 10
+				//{
 					//queue message in sendMessage since it is caught in the SendMessage function
-					xQueueSend(sendMessageQueue, &message, portMAX_DELAY);
-				}
+				//	xQueueSend(sendMessageQueue, &message, portMAX_DELAY);
+				//}
 			}else
 			{
 				free(test);
@@ -393,11 +394,12 @@ static void SendMessage(void *pvParameters )
 	}
 }
 
-void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_context)
+void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_context, sdhfreertos_init const* freertos_init)
 {
     NRF_LOG_DEBUG("Creating a SoftDevice task.");
 
     m_task_hook = hook_fn;
+    getNewAlert_hook = freertos_init->GetNewAlert;
 
     /* Create the timer(s) */
     buttonReleasedTimer = xTimerCreate( 	"ButtonReleased", 				/* A text name, purely to help debugging. */

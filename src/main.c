@@ -519,6 +519,33 @@ static void alert_notification_setup(void)
     NRF_LOG_DEBUG("Notifications enabled.");
 }
 
+static uint8_t* GetNewAlert()
+{
+    //m_ans_c->message_buffer_size;
+    //m_ans_c->p_message_buffer;
+    uint8_t * msg;
+    msg = malloc(MESSAGE_BUFFER_SIZE);
+    //memset(m_alert_message_buffer, 0, MESSAGE_BUFFER_SIZE);
+    memcpy(msg,
+           m_ans_c.p_message_buffer,
+          m_ans_c.message_buffer_size);
+    NRF_LOG_INFO("GetNewAlert: %s", msg);
+    return msg;
+    //uint8_t *
+    /*memcpy(p_alert->p_alert_msg_buf,
+           &p_notification->data[NOTIFICATION_DATA_LENGTH],
+           p_alert->alert_msg_length); //lint !e416
+
+    //these are both used in 
+    m_ans_c->p_gatt_queue//the gatt queue
+    m_ans_c->conn_handle//conn handler
+ee
+    NRF_LOG_DEBUG("Notifications Enabled.");
+    m_ans_c
+    ble_ans_c_enable_notif_new_alert(&m_ans_c);
+    m_new_alert_state = ALERT_NOTIFICATION_ENABLED;*/
+}
+
 /**@brief Function for lighting up the LED corresponding to the notification received.
  *
  * @param[in]   p_evt   Event containing the notification.
@@ -543,11 +570,12 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
     }
     else if (p_evt->uuid.uuid == BLE_UUID_NEW_ALERT_CHAR)
     {
-        if (m_new_alert_state == ALERT_NOTIFICATION_ENABLED)
+        NRF_LOG_INFO("m_new_alert_state: %d", m_new_alert_state);
+        //if (m_new_alert_state == ALERT_NOTIFICATION_ENABLED)
         {
             //err_code = bsp_indication_set(BSP_INDICATE_ALERT_0);
             //APP_ERROR_CHECK(err_code);
-            m_new_alert_state = ALERT_NOTIFICATION_ON;
+            //m_new_alert_state = ALERT_NOTIFICATION_ON;
             NRF_LOG_INFO("New Alert state: On.");
             NRF_LOG_INFO("  Category:                 %s",
                          (uint32_t)lit_catid[p_evt->data.alert.alert_category]);
@@ -627,7 +655,7 @@ static void control_point_setup(ble_ans_c_evt_t * p_evt)
 static void on_ans_c_evt(ble_ans_c_evt_t * p_evt)
 {
     ret_code_t err_code;
-
+    NRF_LOG_DEBUG("on_ans_c_evt %d", p_evt->evt_type);
     switch (p_evt->evt_type)
     {
         case BLE_ANS_C_EVT_NOTIFICATION:
@@ -1309,7 +1337,11 @@ int main(void)
 
     // Create a FreeRTOS task for the BLE stack.
     // The task will run advertising_start() before entering its loop.
-    nrf_sdh_freertos_init(advertising_start, &erase_bonds);
+    sdhfreertos_init freertos_init;
+    memset(&freertos_init, 0, sizeof(freertos_init));
+
+    freertos_init.GetNewAlert = GetNewAlert;
+    nrf_sdh_freertos_init(advertising_start, &erase_bonds, &freertos_init);
 
     NRF_LOG_INFO("HRS FreeRTOS example started.");
     // Start FreeRTOS scheduler.

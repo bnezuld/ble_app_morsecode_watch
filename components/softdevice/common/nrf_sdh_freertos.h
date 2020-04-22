@@ -45,6 +45,16 @@
 extern "C" {
 #endif
 
+#include "nrf_sdh.h"
+#include "nrf_drv_gpiote.h"
+#include "ble_ans_c.h"
+
+typedef uint8_t* (*ble_getNewAlert) ();
+
+typedef struct{
+    ble_getNewAlert  GetNewAlert;
+} sdhfreertos_init;
+
 /**
  * @name FreeRTOS implementation of SoftDevice Handler
  * @{
@@ -58,7 +68,7 @@ typedef void (*nrf_sdh_freertos_task_hook_t)(void * p_context);
  *                          before entering the task loop.
  * @param[in]   p_context   Parameter for the function @p hook.
  */
-void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook, void * p_context);
+void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook, void * p_context, sdhfreertos_init const *freertos_init);
 
 /**@brief   Function for dealing with button pressed event
  * @}

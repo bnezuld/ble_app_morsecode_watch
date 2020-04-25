@@ -250,7 +250,8 @@ static void Menu( void *pvParameters )
 			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
 			{
                                 char* notification = getNewAlert_hook();
-                                xQueueSend(sendMessageQueue, &notification, portMAX_DELAY);
+                                free(notification);
+                                //xQueueSend(sendMessageQueue, &notification, portMAX_DELAY);
 				//if(xQueueReceive( messageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change messageQueue to some notification queue and wait time to 10
 				//{
 					//queue message in sendMessage since it is caught in the SendMessage function
@@ -456,7 +457,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
 
                           xTaskCreate(Menu,
                                        "Menu",
-                                       configMINIMAL_STACK_SIZE,
+                                       100,
                                        p_context,
                                        priority++,
                                        NULL);

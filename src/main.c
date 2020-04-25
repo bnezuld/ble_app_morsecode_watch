@@ -145,7 +145,7 @@
 
 #define OSTIMER_WAIT_FOR_QUEUE              2                                       /**< Number of ticks to wait for the timer queue to be ready */
 
-#define MESSAGE_BUFFER_SIZE             18                                          /**< Size of buffer holding optional messages in notifications. */
+#define MESSAGE_BUFFER_SIZE             17                                          /**< Size of buffer holding optional messages in notifications. */
 #define BLE_ANS_NB_OF_CATEGORY_ID       10                                          /**< Number of categories. */
 
 #define PIN_OUT 17
@@ -529,6 +529,11 @@ static char* GetNewAlert()
            m_ans_c.p_message_buffer,
           m_ans_c.message_buffer_size);
     NRF_LOG_INFO("GetNewAlert: %s", msg);
+    
+    ret_code_t err_code;
+
+    err_code = ble_ans_c_new_alert_read(&m_ans_c);
+    APP_ERROR_CHECK(err_code);
     return msg;
     //uint8_t *
     /*memcpy(p_alert->p_alert_msg_buf,
@@ -584,6 +589,13 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
                          (uint32_t)p_evt->data.alert.alert_msg_length);
             NRF_LOG_INFO("  Text String Information:  %s",
                          (uint32_t)p_evt->data.alert.p_alert_msg_buf);
+            NRF_LOG_INFO("  Text String Information:  %s",
+                         (uint32_t)p_evt->data.alert.alert_msg_continued);
+            if(p_evt->data.alert.alert_msg_continued == 1)
+            {
+                err_code = ble_ans_c_new_alert_cat_read(&m_ans_c);
+                APP_ERROR_CHECK(err_code);
+            }
         }
     }
     else
@@ -1025,7 +1037,7 @@ static void ble_stack_init(void)
 void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
     bool is_set = nrf_drv_gpiote_in_is_set(PIN_IN);
-    if(is_set)
+    if(!is_set)
     {
       ISRButtonReleased();
       nrf_drv_gpiote_out_clear(PIN_OUT);

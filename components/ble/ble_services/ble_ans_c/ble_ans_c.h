@@ -176,6 +176,7 @@ typedef struct
 {
     uint8_t   alert_category;                                 /**< Alert category to which this alert belongs.*/
     uint8_t   alert_category_count;                           /**< Number of alerts in the category. */
+    uint8_t   alert_msg_continued;                            /**< indicator to determine if this is the end of a message */
     uint32_t  alert_msg_length;                               /**< Length of the optional text message sent by the server. */
     uint8_t * p_alert_msg_buf;                                /**< Pointer to the buffer that contains the optional text message. */
 } ble_ans_alert_notification_t;

@@ -53,7 +53,7 @@
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
 
-#define NOTIFICATION_DATA_LENGTH 2                              /**< The mandatory length of the notification data. After the mandatory data, the optional message is located. */
+#define NOTIFICATION_DATA_LENGTH 3                              /**< The mandatory length of the notification data. After the mandatory data, the optional message is located. */
 #define READ_DATA_LENGTH_MIN     1                              /**< Minimum data length in a valid Alert Notification Read Response message. */
 #define WRITE_MESSAGE_LENGTH     2                              /**< Length of the write message for CCCD and control point. */
 
@@ -218,6 +218,7 @@ static void event_notify(ble_ans_c_t * p_ans, ble_evt_t const * p_ble_evt)
 
     p_alert->alert_category       = p_notification->data[0];
     p_alert->alert_category_count = p_notification->data[1];                       //lint !e415
+    p_alert->alert_msg_continued  = p_notification->data[2];
     p_alert->alert_msg_length     = (message_length > p_ans->message_buffer_size)
                                     ? p_ans->message_buffer_size
                                     : message_length;
@@ -447,7 +448,7 @@ uint32_t ble_ans_c_control_point_write(ble_ans_c_t const             * p_ans,
 }
 
 
-uint32_t ble_ans_c_new_alert_read(ble_ans_c_t const * p_ans)
+uint32_t ble_ans_c_new_alert_cat_read(ble_ans_c_t const * p_ans)
 {
     nrf_ble_gq_req_t gq_req;
 
@@ -457,6 +458,21 @@ uint32_t ble_ans_c_new_alert_read(ble_ans_c_t const * p_ans)
     gq_req.error_handler.cb         = gatt_error_handler;
     gq_req.error_handler.p_ctx      = (ble_ans_c_t *)p_ans;
     gq_req.params.gattc_read.handle = p_ans->service.suported_new_alert_cat.handle_value;
+    gq_req.params.gattc_read.offset = 0;
+
+    return nrf_ble_gq_item_add(p_ans->p_gatt_queue, &gq_req, p_ans->conn_handle);
+}
+
+uint32_t ble_ans_c_new_alert_read(ble_ans_c_t const * p_ans)
+{
+    nrf_ble_gq_req_t gq_req;
+
+    memset(&gq_req, 0, sizeof(nrf_ble_gq_req_t));
+
+    gq_req.type                     = NRF_BLE_GQ_REQ_GATTC_READ;
+    gq_req.error_handler.cb         = gatt_error_handler;
+    gq_req.error_handler.p_ctx      = (ble_ans_c_t *)p_ans;
+    gq_req.params.gattc_read.handle = p_ans->service.new_alert.handle_value;
     gq_req.params.gattc_read.offset = 0;
 
     return nrf_ble_gq_item_add(p_ans->p_gatt_queue, &gq_req, p_ans->conn_handle);

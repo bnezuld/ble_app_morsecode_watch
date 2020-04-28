@@ -70,7 +70,8 @@ static QueueHandle_t buttonQueue = NULL,
 
 static SemaphoreHandle_t  semaphoreButtonPressed = NULL, semaphoreButtonPressActive = NULL,
                           semaphoreButtonReleased = NULL, semaphoreButtonReleaseActive = NULL,
-                          semaphoreSendMessage = NULL, semaphoreStopSendMessage = NULL;
+                          semaphoreSendMessage = NULL, semaphoreStopSendMessage = NULL,
+                          semaphoreCompleteNotificationMsg = NULL;
 
 static TimerHandle_t buttonReleasedTimer = NULL, buttonPressedTimer = NULL, DisplaySpaceTimer = NULL, DisplayBeepTimer = NULL;
 
@@ -80,6 +81,9 @@ static TaskHandle_t                 m_softdevice_task,              //!< Referen
 //diffrent handlers that will be called
 static nrf_sdh_freertos_task_hook_t m_task_hook;        //!< A hook function run by the SoftDevice task before entering its loop.
 static ble_getNewAlert getNewAlert_hook;        
+
+char* notificationMsg = NULL;
+uint8_t notificationMsgLength = 0;
      
 struct ButtonPress{
 	uint8_t time;
@@ -249,8 +253,13 @@ static void Menu( void *pvParameters )
 			//try to queue test
 			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
 			{
-                                char* notification = getNewAlert_hook();
-                                free(notification);
+                                getNewAlert_hook();
+                                if(xSemaphoreTake(semaphoreCompleteNotificationMsg, portMAX_DELAY) == pdTRUE)
+                                {
+                                    xQueueSend(sendMessageQueue, &notificationMsg, 10); 
+                                    notificationMsg = NULL;
+                                    notificationMsgLength = 0;
+                                }
                                 //xQueueSend(sendMessageQueue, &notification, portMAX_DELAY);
 				//if(xQueueReceive( messageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change messageQueue to some notification queue and wait time to 10
 				//{
@@ -402,6 +411,36 @@ static void SendMessage(void *pvParameters )
 	}
 }
 
+void AddToNotificationMsg(char* str, uint8_t length)
+{
+    char* tmpNotificationMsg = notificationMsg;
+    char* tmp2notificationMsg = malloc((notificationMsgLength + length) * sizeof(char));
+    notificationMsg = tmp2notificationMsg;
+
+    if(tmpNotificationMsg != NULL)
+    {
+        memcpy(notificationMsg,
+               tmpNotificationMsg,
+               notificationMsgLength);
+
+        free(tmpNotificationMsg);
+    }
+
+    memcpy(&notificationMsg[notificationMsgLength],
+           str,
+           length);
+    notificationMsgLength += length;
+    NRF_LOG_DEBUG("str: %s", str);
+    NRF_LOG_DEBUG("notification add %d: %s", notificationMsgLength, notificationMsg);
+}
+
+void CompleteNotificationMsg()
+{
+    //give semahpore to signal notification is completely received
+        NRF_LOG_DEBUG("CompleteNotificationMsg %d: %s", notificationMsgLength, notificationMsg);
+    xSemaphoreGive(semaphoreCompleteNotificationMsg);
+}
+
 void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_context, sdhfreertos_init const* freertos_init)
 {
     NRF_LOG_DEBUG("Creating a SoftDevice task.");
@@ -442,6 +481,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     semaphoreButtonReleaseActive = xSemaphoreCreateBinary();
     semaphoreSendMessage = xSemaphoreCreateBinary();
     semaphoreStopSendMessage = xSemaphoreCreateBinary();
+    semaphoreCompleteNotificationMsg = xSemaphoreCreateBinary(); 
 
     xSemaphoreGive( semaphoreButtonPressActive );
     xSemaphoreGive( semaphoreSendMessage );

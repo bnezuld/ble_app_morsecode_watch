@@ -519,17 +519,10 @@ static void alert_notification_setup(void)
     NRF_LOG_DEBUG("Notifications enabled.");
 }
 
-static char* GetNewAlert()
+static void GetNewAlert()
 {
     //m_ans_c->message_buffer_size;
     //m_ans_c->p_message_buffer;
-    char * msg;
-    msg = malloc(MESSAGE_BUFFER_SIZE);
-    memcpy(msg,
-           m_ans_c.p_message_buffer,
-          m_ans_c.message_buffer_size);
-    NRF_LOG_INFO("GetNewAlert: %s", msg);
-    
     ret_code_t err_code;
 
     err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
@@ -537,7 +530,7 @@ static char* GetNewAlert()
     
     //err_code = ble_ans_c_new_alert_read(&m_ans_c);
     //APP_ERROR_CHECK(err_code);
-    return msg;
+    //return msg;
     //uint8_t *
     /*memcpy(p_alert->p_alert_msg_buf,
            &p_notification->data[NOTIFICATION_DATA_LENGTH],
@@ -588,7 +581,7 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
                          (uint32_t)lit_catid[p_evt->data.alert.alert_category]);
             NRF_LOG_INFO("  Number of new alerts:     %d",
                          p_evt->data.alert.alert_category_count);
-            NRF_LOG_INFO("  Text String Length:  %s",
+            NRF_LOG_INFO("  Text String Length:  %d",
                          (uint32_t)p_evt->data.alert.alert_msg_length);
             NRF_LOG_INFO("  Text String Information:  %s",
                          (uint32_t)p_evt->data.alert.p_alert_msg_buf);
@@ -596,17 +589,15 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
                          (uint32_t)p_evt->data.alert.alert_msg_continued);
             if(p_evt->data.alert.alert_msg_continued == 1)
             {
-                //add to a char array
-
-                //err_code = ble_ans_c_new_alert_read(&m_ans_c);
-                //APP_ERROR_CHECK(err_code);
+                AddToNotificationMsg(p_evt->data.alert.p_alert_msg_buf, p_evt->data.alert.alert_msg_length);
 
                 err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
                 APP_ERROR_CHECK(err_code);
                 
             }else
             {
-                
+                AddToNotificationMsg(p_evt->data.alert.p_alert_msg_buf, p_evt->data.alert.alert_msg_length);
+                CompleteNotificationMsg();
             }
         }
     }

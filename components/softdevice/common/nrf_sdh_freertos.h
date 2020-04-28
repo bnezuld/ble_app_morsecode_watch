@@ -49,7 +49,7 @@ extern "C" {
 #include "nrf_drv_gpiote.h"
 #include "ble_ans_c.h"
 
-typedef char* (*ble_getNewAlert) ();
+typedef void (*ble_getNewAlert) ();
 
 typedef struct{
     ble_getNewAlert  GetNewAlert;
@@ -74,6 +74,10 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook, void * p_context, 
  * @}
  */
 void ISR_buttonPressed();
+
+void AddToNotificationMsg(char* str, uint8_t length);
+
+void CompleteNotificationMsg();
 
 
 #ifdef __cplusplus

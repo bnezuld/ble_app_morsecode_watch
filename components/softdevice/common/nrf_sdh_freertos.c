@@ -260,12 +260,6 @@ static void Menu( void *pvParameters )
                                     notificationMsg = NULL;
                                     notificationMsgLength = 0;
                                 }
-                                //xQueueSend(sendMessageQueue, &notification, portMAX_DELAY);
-				//if(xQueueReceive( messageQueue, &message, portMAX_DELAY) == pdTRUE)//TODO - change messageQueue to some notification queue and wait time to 10
-				//{
-					//queue message in sendMessage since it is caught in the SendMessage function
-				//	xQueueSend(sendMessageQueue, &message, portMAX_DELAY);
-				//}
 			}else
 			{
 				free(test);

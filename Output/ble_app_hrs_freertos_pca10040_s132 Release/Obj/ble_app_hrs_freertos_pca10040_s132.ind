@@ -53,6 +53,8 @@
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrfx_prs.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrfx_uart.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrfx_uarte.o"
+"Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrf_drv_twi.o"
+"Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrfx_twim.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/bsp.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/bsp_btn_ble.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/main.o"

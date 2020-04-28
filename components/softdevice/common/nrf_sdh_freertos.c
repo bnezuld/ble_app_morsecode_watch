@@ -457,7 +457,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
 
                           xTaskCreate(Menu,
                                        "Menu",
-                                       100,
+                                       200,
                                        p_context,
                                        priority++,
                                        NULL);

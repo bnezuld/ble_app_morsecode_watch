@@ -532,8 +532,11 @@ static char* GetNewAlert()
     
     ret_code_t err_code;
 
-    err_code = ble_ans_c_new_alert_read(&m_ans_c);
+    err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
     APP_ERROR_CHECK(err_code);
+    
+    //err_code = ble_ans_c_new_alert_read(&m_ans_c);
+    //APP_ERROR_CHECK(err_code);
     return msg;
     //uint8_t *
     /*memcpy(p_alert->p_alert_msg_buf,
@@ -593,8 +596,17 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
                          (uint32_t)p_evt->data.alert.alert_msg_continued);
             if(p_evt->data.alert.alert_msg_continued == 1)
             {
-                err_code = ble_ans_c_new_alert_cat_read(&m_ans_c);
+                //add to a char array
+
+                //err_code = ble_ans_c_new_alert_read(&m_ans_c);
+                //APP_ERROR_CHECK(err_code);
+
+                err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
                 APP_ERROR_CHECK(err_code);
+                
+            }else
+            {
+                
             }
         }
     }
@@ -614,7 +626,7 @@ static void supported_alert_notification_read(void)
 
     ret_code_t err_code;
 
-    err_code = ble_ans_c_new_alert_read(&m_ans_c);
+    err_code = ble_ans_c_new_alert_cat_read(&m_ans_c);
     APP_ERROR_CHECK(err_code);
 
     err_code = ble_ans_c_unread_alert_read(&m_ans_c);
@@ -698,6 +710,7 @@ static void on_ans_c_evt(ble_ans_c_evt_t * p_evt)
             break; // BLE_ANS_C_EVT_DISCONN_COMPLETE
 
         default:
+            NRF_LOG_DEBUG("not implemented evt_type");
             // No implementation needed.
             break;
     }

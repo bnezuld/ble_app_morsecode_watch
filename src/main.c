@@ -180,7 +180,11 @@ static volatile bool m_xfer_done = false;
 static const nrf_drv_twi_t m_twi = NRF_DRV_TWI_INSTANCE(TWI_INSTANCE_ID);
 
 /* Buffer for samples read from temperature sensor. */
-static uint8_t m_sample;
+static uint8_t m_sample[2] = {0, 0};
+/* Buffer for samples write to temperature sensor. */
+static uint8_t m_write_sample[1] = {7};
+
+static bool readDone = true;
 
 static uint16_t m_conn_handle         = BLE_CONN_HANDLE_INVALID;    /**< Handle of the current connection. */
 static bool     m_rr_interval_enabled = true;                       /**< Flag for enabling and disabling the registration of new RR interval measurements (the purpose of disabling this is just to test sending HRM without RR interval data. */
@@ -1343,7 +1347,7 @@ void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
             {
                 data_handler(m_sample);
             }
-            m_xfer_done = true;
+            readDone = true;
             break;
         default:
             break;
@@ -1371,6 +1375,37 @@ void twi_init (void)
     nrf_drv_twi_enable(&m_twi);
 }
 
+/**
+ * @brief Function for reading data from temperature sensor.
+ */
+static void read_sensor_data()
+{
+    readDone = false;
+    /* Read 1 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
+    ret_code_t err_code = nrf_drv_twi_rx(&m_twi,  0x50, &m_sample, sizeof(m_sample));
+    APP_ERROR_CHECK(err_code);
+}
+
+/**
+ * @brief Function for writing data to temperature sensor.
+ * @param[in] p_instance Pointer to the driver instance structure.
+ * @param[in] address    Address of a specific slave device (only 7 LSB).
+ * @param[in] p_data     Pointer to a transmit buffer.
+ * @param[in] length     Number of bytes to send.
+ * @param[in] no_stop    If set, the stop condition is not generated on the bus
+ *                       after the transfer has completed successfully (allowing
+ *                       for a repeated start in the next transfer).
+ */
+static void write_sensor_data()
+{
+    /* Read 1 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
+    ret_code_t err_code = nrf_drv_twi_tx(&m_twi, 0x50, &m_sample, sizeof(m_sample), false);
+    APP_ERROR_CHECK(err_code);
+
+    /* Read 1 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
+    err_code = nrf_drv_twi_tx(&m_twi, 0x50, &m_write_sample, sizeof(m_write_sample), false);
+    APP_ERROR_CHECK(err_code);
+}
 
 /**@brief Function for application main entry.
  */
@@ -1418,6 +1453,14 @@ int main(void)
     // The task will run advertising_start() before entering its loop.
     sdhfreertos_init freertos_init;
     memset(&freertos_init, 0, sizeof(freertos_init));
+
+    //read_sensor_data();
+    //while(readDone == false)
+    //{
+    //    __WFE();
+    //}
+    //write_sensor_data();
+    //read_sensor_data();
 
     freertos_init.GetNewAlert = GetNewAlert;
     nrf_sdh_freertos_init(advertising_start, &erase_bonds, &freertos_init);

@@ -251,10 +251,12 @@ static void Menu( void *pvParameters )
 			test[0] = 'N';
 			test[1] = '\0';
 			//try to queue test
+                        NRF_LOG_DEBUG("N menu");
 			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
 			{
+                                NRF_LOG_DEBUG("N menu1");
                                 getNewAlert_hook();
-                                if(xSemaphoreTake(semaphoreCompleteNotificationMsg, portMAX_DELAY) == pdTRUE)
+                                if(xSemaphoreTake(semaphoreCompleteNotificationMsg, portMAX_DELAY) == pdTRUE)//TODO - error happening here semaphoreCompleteNotificationMsg is not being given if the notification is empty
                                 {
                                     xQueueSend(sendMessageQueue, &notificationMsg, 10); 
                                     notificationMsg = NULL;
@@ -400,6 +402,7 @@ static void SendMessage(void *pvParameters )
                                 }
 				free(message);
 				xQueueReceive( sendMessageQueue, &message, portMAX_DELAY );
+                                NRF_LOG_DEBUG("SendMessage free message");
 			}
 		}
 	}

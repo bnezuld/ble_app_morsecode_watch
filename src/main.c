@@ -540,11 +540,15 @@ static void GetNewAlert()
 {
     //m_ans_c->message_buffer_size;
     //m_ans_c->p_message_buffer;
-    ret_code_t err_code;
+    if(m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
+    {
+        ret_code_t err_code;
 
-    err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
-    APP_ERROR_CHECK(err_code);
-    
+        err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
+        APP_ERROR_CHECK(err_code);
+
+        NRF_LOG_DEBUG("GetNewAlert.");
+    }
     //err_code = ble_ans_c_new_alert_read(&m_ans_c);
     //APP_ERROR_CHECK(err_code);
     //return msg;
@@ -604,16 +608,22 @@ static void handle_alert_notification(ble_ans_c_evt_t * p_evt)
                          (uint32_t)p_evt->data.alert.p_alert_msg_buf);
             NRF_LOG_INFO("  Text String Information:  %s",
                          (uint32_t)p_evt->data.alert.alert_msg_continued);
-            if(p_evt->data.alert.alert_msg_continued == 1)
+            if(p_evt->data.alert.p_alert_msg_buf != NULL)
             {
-                AddToNotificationMsg(p_evt->data.alert.p_alert_msg_buf, p_evt->data.alert.alert_msg_length);
+                if(p_evt->data.alert.alert_msg_continued == 1)
+                {
+                    AddToNotificationMsg(p_evt->data.alert.p_alert_msg_buf, p_evt->data.alert.alert_msg_length);
 
-                err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
-                APP_ERROR_CHECK(err_code);
+                    err_code = ble_ans_c_new_alert_notify(&m_ans_c, ANS_TYPE_ALL_ALERTS);
+                    APP_ERROR_CHECK(err_code);
                 
+                }else
+                {
+                    AddToNotificationMsg(p_evt->data.alert.p_alert_msg_buf, p_evt->data.alert.alert_msg_length);
+                    CompleteNotificationMsg();
+                }
             }else
-            {
-                AddToNotificationMsg(p_evt->data.alert.p_alert_msg_buf, p_evt->data.alert.alert_msg_length);
+            {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
                 CompleteNotificationMsg();
             }
         }

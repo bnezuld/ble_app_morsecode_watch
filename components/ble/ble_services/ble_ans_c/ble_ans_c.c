@@ -196,11 +196,6 @@ static void event_notify(ble_ans_c_t * p_ans, ble_evt_t const * p_ble_evt)
 
     // If the message is not valid, then ignore.
     event.evt_type = BLE_ANS_C_EVT_NOTIFICATION;
-    if (p_notification->len < NOTIFICATION_DATA_LENGTH)
-    {
-        return;
-    }
-    message_length = p_notification->len - NOTIFICATION_DATA_LENGTH;
 
     if (p_notification->handle == p_ans->service.new_alert.handle_value)
     {
@@ -215,6 +210,18 @@ static void event_notify(ble_ans_c_t * p_ans, ble_evt_t const * p_ble_evt)
         // Nothing to process.
         return;
     }
+
+    if (p_notification->len < NOTIFICATION_DATA_LENGTH)
+    {
+        p_alert->alert_category       = 0;
+        p_alert->alert_category_count = 0;                       //lint !e415
+        p_alert->alert_msg_continued  = 0;
+        p_alert->alert_msg_length     = 0;
+        p_alert->p_alert_msg_buf = 0;
+        p_ans->evt_handler(&event);
+        return;
+    }
+    message_length = p_notification->len - NOTIFICATION_DATA_LENGTH;
 
     p_alert->alert_category       = p_notification->data[0];
     p_alert->alert_category_count = p_notification->data[1];                       //lint !e415

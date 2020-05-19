@@ -55,7 +55,7 @@ NRF_LOG_MODULE_REGISTER();
 
 #define NOTIFICATION_DATA_LENGTH 3                              /**< The mandatory length of the notification data. After the mandatory data, the optional message is located. */
 #define READ_DATA_LENGTH_MIN     1                              /**< Minimum data length in a valid Alert Notification Read Response message. */
-#define WRITE_MESSAGE_LENGTH     2                              /**< Length of the write message for CCCD and control point. */
+#define WRITE_MESSAGE_LENGTH     20                              /**< Length of the write message for CCCD and control point. */
 
 
 /**@brief Function for intercepting GATTC and @ref nrf_ble_gq errors.
@@ -379,7 +379,7 @@ static uint32_t cccd_configure(ble_ans_c_t const * const p_ans,
     cccd_req.error_handler.cb            = gatt_error_handler;
     cccd_req.error_handler.p_ctx         = (ble_ans_c_t *)p_ans;
     cccd_req.params.gattc_write.handle   = handle_cccd;
-    cccd_req.params.gattc_write.len      = WRITE_MESSAGE_LENGTH;
+    cccd_req.params.gattc_write.len      = 2;
     cccd_req.params.gattc_write.p_value  = cccd;
     cccd_req.params.gattc_write.offset   = 0;
     cccd_req.params.gattc_write.write_op = BLE_GATT_OP_WRITE_REQ;
@@ -432,21 +432,34 @@ uint32_t ble_ans_c_disable_notif_unread_alert(ble_ans_c_t const * p_ans)
 
 
 uint32_t ble_ans_c_control_point_write(ble_ans_c_t const             * p_ans,
-                                       ble_ans_control_point_t const * p_control_point)
+                                       ble_ans_control_point_t const * p_control_point,
+                                       char * msg)
 {
     nrf_ble_gq_req_t gq_req;
     uint8_t          write_data[WRITE_MESSAGE_LENGTH];
+    uint8_t          length = 2;
 
     write_data[0] = p_control_point->command;
     write_data[1] = p_control_point->category;
-
+    if(msg != NULL){
+        for(int msgIndex = 0; msgIndex < 18; msgIndex++)
+        {
+            if(msg[msgIndex] == '\0')
+            {
+                break;
+            }
+            length++;
+            write_data[msgIndex + 2] = msg[msgIndex];
+        }
+        length = WRITE_MESSAGE_LENGTH;
+    }
     memset(&gq_req, 0, sizeof(nrf_ble_gq_req_t));
 
     gq_req.type                        = NRF_BLE_GQ_REQ_GATTC_WRITE;
     gq_req.error_handler.cb            = gatt_error_handler;
     gq_req.error_handler.p_ctx         = (ble_ans_c_t *)p_ans;
     gq_req.params.gattc_write.handle   = p_ans->service.alert_notif_ctrl_point.handle_value;
-    gq_req.params.gattc_write.len      = WRITE_MESSAGE_LENGTH;
+    gq_req.params.gattc_write.len      = length;
     gq_req.params.gattc_write.p_value  = write_data;
     gq_req.params.gattc_write.offset   = 0;
     gq_req.params.gattc_write.write_op = BLE_GATT_OP_WRITE_REQ;
@@ -509,7 +522,7 @@ uint32_t ble_ans_c_new_alert_notify(ble_ans_c_t const * p_ans, ble_ans_category_
     control_point.command  = ANS_NOTIFY_NEW_INCOMING_ALERT_IMMEDIATELY;
     control_point.category = category_id;
 
-    return ble_ans_c_control_point_write(p_ans, &control_point);
+    return ble_ans_c_control_point_write(p_ans, &control_point, NULL);
 }
 
 
@@ -520,7 +533,17 @@ uint32_t ble_ans_c_unread_alert_notify(ble_ans_c_t const * p_ans, ble_ans_catego
     control_point.command  = ANS_NOTIFY_UNREAD_CATEGORY_STATUS_IMMEDIATELY;
     control_point.category = category_id;
 
-    return ble_ans_c_control_point_write(p_ans, &control_point);
+    return ble_ans_c_control_point_write(p_ans, &control_point, NULL);
+}
+
+uint32_t ble_ans_c_reply_new_alert(ble_ans_c_t const * p_ans, ble_ans_category_id_t category_id, char* msg)
+{
+    ble_ans_control_point_t control_point;
+
+    control_point.command  = ANS_REPLY_NEW_ALERT;
+    control_point.category = category_id;
+
+    return ble_ans_c_control_point_write(p_ans, &control_point, msg);
 }
 
 

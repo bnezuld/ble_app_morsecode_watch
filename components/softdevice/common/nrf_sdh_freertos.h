@@ -50,9 +50,11 @@ extern "C" {
 #include "ble_ans_c.h"
 
 typedef void (*ble_getNewAlert) ();
+typedef void (*ble_replyToNotification) (char*);
 
 typedef struct{
     ble_getNewAlert  GetNewAlert;
+    ble_replyToNotification ReplyToNotification;
 } sdhfreertos_init;
 
 /**

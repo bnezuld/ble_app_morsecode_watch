@@ -128,6 +128,7 @@ typedef enum
     ANS_DISABLE_UNREAD_CATEGORY_STATUS_NOTIFICATION = 3,      /**< Disable Unread Category Status Notification.*/
     ANS_NOTIFY_NEW_INCOMING_ALERT_IMMEDIATELY       = 4,      /**< Notify New Incoming Alert immediately.*/
     ANS_NOTIFY_UNREAD_CATEGORY_STATUS_IMMEDIATELY   = 5,      /**< Notify Unread Category Status immediately.*/
+    ANS_REPLY_NEW_ALERT                             = 6,      /**< Reply New Alert.*/
 } ble_ans_command_id_t;
 
 /**@brief Alert Notification Event types that are passed from client to the application on an event. */
@@ -319,6 +320,8 @@ uint32_t ble_ans_c_disable_notif_new_alert(ble_ans_c_t const * p_ans);
  */
 uint32_t ble_ans_c_disable_notif_unread_alert(ble_ans_c_t const * p_ans);
 
+uint32_t ble_ans_c_reply_new_alert(ble_ans_c_t const * p_ans, ble_ans_category_id_t category_id, char* msg);
+
 
 /**@brief Function for writing to the Alert Notification Control Point to specify alert notification behavior in the
  * Alert Notification Service on the Central.
@@ -335,7 +338,8 @@ uint32_t ble_ans_c_disable_notif_unread_alert(ble_ans_c_t const * p_ans);
  *                             @ref nrf_ble_gq_item_add.
  */
 uint32_t ble_ans_c_control_point_write(ble_ans_c_t const             * p_ans,
-                                       ble_ans_control_point_t const * p_control_point);
+                                       ble_ans_control_point_t const * p_control_point,
+                                       char                          * msg);
 
 
 /**@brief Function for reading the Supported New Alert characteristic value of the service.

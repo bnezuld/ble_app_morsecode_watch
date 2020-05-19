@@ -150,6 +150,7 @@
 #define BLE_ANS_NB_OF_CATEGORY_ID       10                                          /**< Number of categories. */
 
 #define PIN_OUT 17
+#define PIN_OUT_2 18
 #define PIN_IN 13
 
 /* TWI instance ID. */
@@ -567,6 +568,37 @@ ee
     m_new_alert_state = ALERT_NOTIFICATION_ENABLED;*/
 }
 
+static void ReplyToNotification(char * msg)
+{
+    //m_ans_c->message_buffer_size;
+    //m_ans_c->p_message_buffer;
+    if(m_ans_c.conn_handle != BLE_CONN_HANDLE_INVALID)
+    {
+        ret_code_t err_code;
+
+        err_code = ble_ans_c_reply_new_alert(&m_ans_c, ANS_TYPE_ALL_ALERTS, msg);
+        APP_ERROR_CHECK(err_code);
+
+        NRF_LOG_DEBUG("Reply To Notification.");
+    }
+    //err_code = ble_ans_c_new_alert_read(&m_ans_c);
+    //APP_ERROR_CHECK(err_code);
+    //return msg;
+    //uint8_t *
+    /*memcpy(p_alert->p_alert_msg_buf,
+           &p_notification->data[NOTIFICATION_DATA_LENGTH],
+           p_alert->alert_msg_length); //lint !e416
+
+    //these are both used in 
+    m_ans_c->p_gatt_queue//the gatt queue
+    m_ans_c->conn_handle//conn handler
+ee
+    NRF_LOG_DEBUG("Notifications Enabled.");
+    m_ans_c
+    ble_ans_c_enable_notif_new_alert(&m_ans_c);
+    m_new_alert_state = ALERT_NOTIFICATION_ENABLED;*/
+}
+
 /**@brief Function for lighting up the LED corresponding to the notification received.
  *
  * @param[in]   p_evt   Event containing the notification.
@@ -681,7 +713,7 @@ static void control_point_setup(ble_ans_c_evt_t * p_evt)
         return;
     }
 
-    err_code = ble_ans_c_control_point_write(&m_ans_c, &setting);
+    err_code = ble_ans_c_control_point_write(&m_ans_c, &setting, NULL);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -1095,7 +1127,7 @@ static void gpio_init(void)
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_gpiote_out_config_t out_config_low = GPIOTE_CONFIG_OUT_SIMPLE(true);
-    err_code = nrf_drv_gpiote_out_init(18, &out_config_low);
+    err_code = nrf_drv_gpiote_out_init(PIN_OUT_2, &out_config_low);
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
@@ -1420,7 +1452,7 @@ static void write_sensor_data()
 /**@brief Function for application main entry.
  */
 int main(void)
-{
+ {
     bool erase_bonds;
 
     // Initialize modules.
@@ -1473,6 +1505,7 @@ int main(void)
     //read_sensor_data();
 
     freertos_init.GetNewAlert = GetNewAlert;
+    freertos_init.ReplyToNotification = ReplyToNotification;
     nrf_sdh_freertos_init(advertising_start, &erase_bonds, &freertos_init);
 
     NRF_LOG_INFO("HRS FreeRTOS example started.");

@@ -435,36 +435,48 @@ uint32_t ble_ans_c_control_point_write(ble_ans_c_t const             * p_ans,
                                        ble_ans_control_point_t const * p_control_point,
                                        char * msg)
 {
-    nrf_ble_gq_req_t gq_req;
-    uint8_t          write_data[WRITE_MESSAGE_LENGTH];
-    uint8_t          length = 2;
+    ret_code_t err_code;
+    do{
+        nrf_ble_gq_req_t gq_req;
+        uint8_t          write_data[WRITE_MESSAGE_LENGTH];
+        uint8_t          length = 2;
 
-    write_data[0] = p_control_point->command;
-    write_data[1] = p_control_point->category;
-    if(msg != NULL){
-        for(int msgIndex = 0; msgIndex < 18; msgIndex++)
-        {
-            if(msg[msgIndex] == '\0')
+        write_data[0] = p_control_point->command;
+        write_data[1] = p_control_point->category;
+        write_data[2] = '\0';
+        if(msg != NULL){
+            for(int msgIndex = 0; msgIndex < 17; msgIndex++)
             {
-                break;
+                length++;
+                write_data[msgIndex + 3] = msg[msgIndex];
+                if(msg[msgIndex] == '\0')
+                {
+                    msg = NULL;
+                    break;
+                }
             }
-            length++;
-            write_data[msgIndex + 2] = msg[msgIndex];
+            //length = WRITE_MESSAGE_LENGTH;
         }
-        length = WRITE_MESSAGE_LENGTH;
-    }
-    memset(&gq_req, 0, sizeof(nrf_ble_gq_req_t));
+        if(msg != NULL)
+        {
+            write_data[2] = '\1';
+            msg += 17;
+        }
+        memset(&gq_req, 0, sizeof(nrf_ble_gq_req_t));
 
-    gq_req.type                        = NRF_BLE_GQ_REQ_GATTC_WRITE;
-    gq_req.error_handler.cb            = gatt_error_handler;
-    gq_req.error_handler.p_ctx         = (ble_ans_c_t *)p_ans;
-    gq_req.params.gattc_write.handle   = p_ans->service.alert_notif_ctrl_point.handle_value;
-    gq_req.params.gattc_write.len      = length;
-    gq_req.params.gattc_write.p_value  = write_data;
-    gq_req.params.gattc_write.offset   = 0;
-    gq_req.params.gattc_write.write_op = BLE_GATT_OP_WRITE_REQ;
+        gq_req.type                        = NRF_BLE_GQ_REQ_GATTC_WRITE;
+        gq_req.error_handler.cb            = gatt_error_handler;
+        gq_req.error_handler.p_ctx         = (ble_ans_c_t *)p_ans;
+        gq_req.params.gattc_write.handle   = p_ans->service.alert_notif_ctrl_point.handle_value;
+        gq_req.params.gattc_write.len      = length;
+        gq_req.params.gattc_write.p_value  = write_data;
+        gq_req.params.gattc_write.offset   = 0;
+        gq_req.params.gattc_write.write_op = BLE_GATT_OP_WRITE_REQ;
 
-    return nrf_ble_gq_item_add(p_ans->p_gatt_queue, &gq_req, p_ans->conn_handle);
+        err_code = nrf_ble_gq_item_add(p_ans->p_gatt_queue, &gq_req, p_ans->conn_handle);
+        APP_ERROR_CHECK(err_code);
+    }while(msg != NULL);
+    return err_code;
 }
 
 

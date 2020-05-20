@@ -257,8 +257,9 @@ static void Menu( void *pvParameters )
 			{
                                 NRF_LOG_DEBUG("N menu1");
                                 getNewAlert_hook();
-                                if(xSemaphoreTake(semaphoreCompleteNotificationMsg, portMAX_DELAY) == pdTRUE)//TODO - error happening here semaphoreCompleteNotificationMsg is not being given if the notification is empty
+                                if(xSemaphoreTake(semaphoreCompleteNotificationMsg, 3000*(1.0/(configTICK_RATE_HZ * (.001f)))) == pdTRUE)//TODO - error happening here semaphoreCompleteNotificationMsg is not being given if the notification is empty
                                 {
+                                    NRF_LOG_DEBUG("N menu2");
                                     xQueueSend(sendMessageQueue, &notificationMsg, 10); 
                                     notificationMsg = NULL;
                                     notificationMsgLength = 0;
@@ -286,16 +287,12 @@ static void Menu( void *pvParameters )
 			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
 			{
                             NRF_LOG_DEBUG("R menu 1");
-                            if(xSemaphoreTake(semaphoreCompleteNotificationMsg, portMAX_DELAY) == pdTRUE)//TODO - error happening here semaphoreCompleteNotificationMsg is not being given if the notification is empty
-                            {
-                                NRF_LOG_DEBUG("R menu 2");
-                                xQueueReceive( messageQueue, &message, portMAX_DELAY );
-                                replyToNotification_hook(message);
-                                free(message);
-                            }
+                            xQueueReceive( messageQueue, &message, portMAX_DELAY );
+                            replyToNotification_hook(message);
+                            free(message);
 			}else
 			{
-				free(test);
+                            free(test);
 			}
 			//reply to previous Notification?
 		}else
@@ -384,7 +381,6 @@ static void SendMessage(void *pvParameters )
 						if(xSemaphoreTake( semaphoreStopSendMessage, 0 ) == pdTRUE)
 						{
 							*(tmpMsg + 1) = '\0';
-                                                        CompleteNotificationMsg();
 							break;
 						}
 						int8_t val = -1;

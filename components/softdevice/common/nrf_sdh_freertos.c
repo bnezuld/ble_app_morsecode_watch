@@ -260,6 +260,7 @@ static void Menu( void *pvParameters )
                                 if(xSemaphoreTake(semaphoreCompleteNotificationMsg, 3000*(1.0/(configTICK_RATE_HZ * (.001f)))) == pdTRUE)//TODO - error happening here semaphoreCompleteNotificationMsg is not being given if the notification is empty
                                 {
                                     NRF_LOG_DEBUG("N menu2");
+
                                     xQueueSend(sendMessageQueue, &notificationMsg, 10); 
                                     notificationMsg = NULL;
                                     notificationMsgLength = 0;

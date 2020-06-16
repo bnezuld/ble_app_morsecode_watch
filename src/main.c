@@ -95,6 +95,8 @@
 
 #include "nrf_pwr_mgmt.h"
 
+#include "nrf_delay.h"
+
 
 
 
@@ -149,14 +151,15 @@
 #define MESSAGE_BUFFER_SIZE             17                                          /**< Size of buffer holding optional messages in notifications. */
 #define BLE_ANS_NB_OF_CATEGORY_ID       10                                          /**< Number of categories. */
 
-#define PIN_OUT 17
-#define PIN_OUT_2 18
-#define PIN_IN 13
+#define PIN_OUT_MOTOR_SLEEP 13
+#define PIN_OUT 14
+#define PIN_OUT_2 15
+#define PIN_IN 16
 
 /* TWI instance ID. */
 #define TWI_INSTANCE_ID     0
 
-typedef enum
+typedef enum 
 {
     ALERT_NOTIFICATION_DISABLED, /**< Alert Notifications has been disabled. */
     ALERT_NOTIFICATION_ENABLED,  /**< Alert Notifications has been enabled. */
@@ -185,7 +188,7 @@ static uint8_t m_sample[2] = {0, 0};
 /* Buffer for samples write to temperature sensor. */
 static uint8_t m_write_sample[1] = {7};
 
-static bool readDone = true;
+static volatile bool readDone = true;
 
 static uint16_t m_conn_handle         = BLE_CONN_HANDLE_INVALID;    /**< Handle of the current connection. */
 static bool     m_rr_interval_enabled = true;                       /**< Flag for enabling and disabling the registration of new RR interval measurements (the purpose of disabling this is just to test sending HRM without RR interval data. */
@@ -1122,11 +1125,15 @@ static void gpio_init(void)
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
+        nrf_drv_gpiote_out_config_t out_config_low = GPIOTE_CONFIG_OUT_SIMPLE(true);
 
     err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config);
     APP_ERROR_CHECK(err_code);
 
-    nrf_drv_gpiote_out_config_t out_config_low = GPIOTE_CONFIG_OUT_SIMPLE(true);
+    err_code = nrf_drv_gpiote_out_init(PIN_OUT_MOTOR_SLEEP, &out_config);
+    APP_ERROR_CHECK(err_code);
+    nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_SLEEP);
+
     err_code = nrf_drv_gpiote_out_init(PIN_OUT_2, &out_config_low);
     APP_ERROR_CHECK(err_code);
 
@@ -1390,6 +1397,7 @@ void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
                 data_handler(m_sample);
             }
             readDone = true;
+            NRF_LOG_INFO("read done true");
             break;
         default:
             break;
@@ -1407,7 +1415,7 @@ void twi_init (void)
        .scl                = 27,
        .sda                = 26,
        .frequency          = NRF_DRV_TWI_FREQ_100K,
-       .interrupt_priority = APP_IRQ_PRIORITY_HIGH,
+       .interrupt_priority = APP_IRQ_PRIORITY_LOW,
        .clear_bus_init     = false
     };
 
@@ -1417,16 +1425,6 @@ void twi_init (void)
     nrf_drv_twi_enable(&m_twi);
 }
 
-/**
- * @brief Function for reading data from temperature sensor.
- */
-static void read_sensor_data()
-{
-    readDone = false;
-    /* Read 1 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
-    ret_code_t err_code = nrf_drv_twi_rx(&m_twi,  0x50, &m_sample, sizeof(m_sample));
-    APP_ERROR_CHECK(err_code);
-}
 
 /**
  * @brief Function for writing data to temperature sensor.
@@ -1438,15 +1436,57 @@ static void read_sensor_data()
  *                       after the transfer has completed successfully (allowing
  *                       for a repeated start in the next transfer).
  */
-static void write_sensor_data()
+void write_sensor_data(uint8_t deviceAddress, uint16_t address, uint8_t data)
 {
-    /* Read 1 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
-    ret_code_t err_code = nrf_drv_twi_tx(&m_twi, 0x50, &m_sample, sizeof(m_sample), false);
-    APP_ERROR_CHECK(err_code);
 
-    /* Read 1 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
-    err_code = nrf_drv_twi_tx(&m_twi, 0x50, &m_write_sample, sizeof(m_write_sample), false);
+    uint8_t outgoing_data[3] = {address >> 8, address & 0xFF, data};
+
+    ret_code_t err_code; 
+    readDone = false;
+    NRF_LOG_INFO("read done false");
+
+    do{
+    err_code = nrf_drv_twi_tx(&m_twi, deviceAddress, outgoing_data, sizeof(outgoing_data), false);
     APP_ERROR_CHECK(err_code);
+    nrf_delay_us(500);
+    }while(readDone == false);
+    /*{
+        __WFE();
+    }*/
+
+    return;
+}
+
+uint8_t read_sensor_data()//uint8_t deviceAddress, uint16_t address, uint8_t data)
+{
+    readDone = false;
+    NRF_LOG_INFO("read done false");
+    uint8_t outgoing_data[2] = {0x00, 0x80};
+
+    ret_code_t err_code; 
+    
+    do{
+    err_code = nrf_drv_twi_tx(&m_twi, 0x50, outgoing_data, sizeof(outgoing_data), false);
+    APP_ERROR_CHECK(err_code);
+    nrf_delay_us(500);
+    }while(readDone == false);
+    /*{
+        __WFE();
+    }*/
+
+    readDone = false;
+    NRF_LOG_INFO("read done false");
+    uint8_t resultsWhoAmI[1];
+    do{
+    err_code = nrf_drv_twi_rx(&m_twi, 0x50, resultsWhoAmI, sizeof(resultsWhoAmI));
+    APP_ERROR_CHECK(err_code);
+    nrf_delay_us(500);
+    }while(readDone == false);
+    /*{
+        __WFE();
+    }*/
+
+    return resultsWhoAmI;
 }
 
 /**@brief Function for application main entry.
@@ -1491,6 +1531,17 @@ int main(void)
     twi_init();
     application_timers_start();
 
+    write_sensor_data(0x50, 0x0080, 0xaa);
+
+//used to test the clock frequency
+    ret_code_t err_code = sd_clock_hfclk_request();
+    
+    APP_ERROR_CHECK(err_code);
+    uint32_t hfclk_is_running = 0;
+    while (!hfclk_is_running) {
+	APP_ERROR_CHECK(sd_clock_hfclk_is_running(&hfclk_is_running));
+    }  // */ 
+
     // Create a FreeRTOS task for the BLE stack.
     // The task will run advertising_start() before entering its loop.
     sdhfreertos_init freertos_init;
@@ -1501,13 +1552,12 @@ int main(void)
     //{
     //    __WFE();
     //}
-    //write_sensor_data();
-    //read_sensor_data();
 
     freertos_init.GetNewAlert = GetNewAlert;
     freertos_init.ReplyToNotification = ReplyToNotification;
     nrf_sdh_freertos_init(advertising_start, &erase_bonds, &freertos_init);
 
+    read_sensor_data();
     NRF_LOG_INFO("HRS FreeRTOS example started.");
     // Start FreeRTOS scheduler.
     vTaskStartScheduler();

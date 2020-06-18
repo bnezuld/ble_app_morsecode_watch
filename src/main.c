@@ -152,8 +152,8 @@
 #define BLE_ANS_NB_OF_CATEGORY_ID       10                                          /**< Number of categories. */
 
 #define PIN_OUT_MOTOR_SLEEP 13
-#define PIN_OUT 14
-#define PIN_OUT_2 15
+#define PIN_OUT 17
+#define PIN_OUT_2 18
 #define PIN_IN 16
 
 /* TWI instance ID. */
@@ -1531,8 +1531,6 @@ int main(void)
     twi_init();
     application_timers_start();
 
-    write_sensor_data(0x50, 0x0080, 0xaa);
-
 //used to test the clock frequency
     ret_code_t err_code = sd_clock_hfclk_request();
     
@@ -1557,7 +1555,8 @@ int main(void)
     freertos_init.ReplyToNotification = ReplyToNotification;
     nrf_sdh_freertos_init(advertising_start, &erase_bonds, &freertos_init);
 
-    read_sensor_data();
+    //write_sensor_data(0x50, 0x0080, 0xaa);
+    //read_sensor_data();
     NRF_LOG_INFO("HRS FreeRTOS example started.");
     // Start FreeRTOS scheduler.
     vTaskStartScheduler();

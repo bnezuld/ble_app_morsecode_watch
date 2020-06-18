@@ -71,12 +71,14 @@ static QueueHandle_t buttonQueue = NULL,
 static SemaphoreHandle_t  semaphoreButtonPressed = NULL, semaphoreButtonPressActive = NULL,
                           semaphoreButtonReleased = NULL, semaphoreButtonReleaseActive = NULL,
                           semaphoreSendMessage = NULL, semaphoreStopSendMessage = NULL,
-                          semaphoreCompleteNotificationMsg = NULL;
+                          semaphoreCompleteNotificationMsg = NULL,
+                          semaphoreSendMessageComplete = NULL;
 
 static TimerHandle_t buttonReleasedTimer = NULL, buttonPressedTimer = NULL, DisplaySpaceTimer = NULL, DisplayBeepTimer = NULL;
 
 static TaskHandle_t                 m_softdevice_task,              //!< Reference to SoftDevice FreeRTOS task.
-                                    RecordButtonPressesTask = NULL;  
+                                    RecordButtonPressesTask = NULL,
+                                    polling_task = NULL;  
 
 //diffrent handlers that will be called
 static nrf_sdh_freertos_task_hook_t m_task_hook;        //!< A hook function run by the SoftDevice task before entering its loop.
@@ -147,7 +149,7 @@ static void ButtonReleased_handler( TimerHandle_t xTimer )
     uint8_t ulCount = ( uint8_t ) pvTimerGetTimerID( xTimer );
     ulCount++;
     vTimerSetTimerID( xTimer, ( void * ) ulCount );
-    if(ulCount > SPACE_UNITS_END_OF_MESSAGE)
+    if(ulCount > GetSpaceUnit(SPACE_UNITS_END_OF_MESSAGE))
     {
         xTimerStop(xTimer, 0);
         TranslateMorseCode();
@@ -296,6 +298,87 @@ static void Menu( void *pvParameters )
                             free(test);
 			}
 			//reply to previous Notification?
+		}else if(strcmp(message, "S") == 0)
+		{
+                        free(message);
+
+                        char* test = malloc(2 * sizeof(char));
+			test[0] = 'S';
+			test[1] = '\0';
+                        if(xQueueSend(sendMessageQueue, &test, portMAX_DELAY) == pdTRUE)
+			{
+                            NRF_LOG_DEBUG("wait for message");
+                            if(xSemaphoreTake(semaphoreSendMessageComplete, portMAX_DELAY) == pdTRUE)
+                            {
+                                //save current settings
+                                int originalSpaceMod = GetSpaceUnitModifier();
+                                bool saveChange = false;
+                                for(int i = 1; i < 4; i++)
+                                {
+                                    NRF_LOG_DEBUG("space unit modify: %i", i);
+
+                                    SetSpaceUnitModifier(i);
+
+                                    bool invalidMsg = false;
+                                    do{
+                                        invalidMsg = false;
+                                        //  disable button press
+                                        vTaskSuspend(polling_task);
+                                        //  display a test message
+                                        test = malloc(5 * sizeof(char));
+                                        test[0] = 'E';
+                                        test[1] = 'E';
+                                        test[2] = ' ';
+                                        test[3] = 'O';
+                                        test[4] = '\0';
+                                        NRF_LOG_DEBUG("display S: '%s'", test);
+                                        if(xQueueSend(sendMessageQueue, &test, portMAX_DELAY) == pdTRUE)
+                                        {   
+                                            //xQueueSend
+                                            //  wait for test message to finish
+                                            NRF_LOG_DEBUG("wait for message");
+                                            if(xSemaphoreTake(semaphoreSendMessageComplete, portMAX_DELAY) == pdTRUE)
+                                            {
+                                                //update back to original speed
+                                                NRF_LOG_DEBUG("enable polling");
+                                                SetSpaceUnitModifier(originalSpaceMod);
+                                                //enable button press
+                                                vTaskResume(polling_task);
+                                                //    wait for message
+                                                xQueueReceive( messageQueue, &message, portMAX_DELAY );
+                                                if(strcmp(message, "E") == 0)
+                                                {
+                                                    SetSpaceUnitModifier(i);
+                                                    saveChange = true;
+                                                }else if(strcmp(message, "I") == 0)
+                                                {
+                                        
+                                                }else
+                                                {
+                                                    SetSpaceUnitModifier(i);
+                                                    invalidMsg = true;
+                                                }
+                                            }
+                                        }else
+                                        {
+                                            free(test);
+                                        }
+                                    }
+                                    while(invalidMsg);
+                                    if(saveChange)
+                                    {
+                                        break;
+                                    }
+                                }
+                                if(!saveChange)
+                                {
+                                    SetSpaceUnitModifier(originalSpaceMod);
+                                }
+                            }else
+                            {
+                                free(test);
+                            }
+                        }
 		}else
 		{
 			free(message);
@@ -324,6 +407,7 @@ static void DisplayOn( TimerHandle_t xTimer )
 		}else{
 			nrf_drv_gpiote_out_set(18);
 			xSemaphoreGive(semaphoreSendMessage);
+                        xSemaphoreGive(semaphoreSendMessageComplete);
 		}
 	}else{
 		ulCount--;
@@ -347,6 +431,7 @@ static void DisplayOff( TimerHandle_t xTimer )
 		}else{
 			nrf_drv_gpiote_out_set(18);
 			xSemaphoreGive(semaphoreSendMessage);
+                        xSemaphoreGive(semaphoreSendMessageComplete);
 		}
 	}else{
 		ulCount--;
@@ -362,6 +447,9 @@ static void SendMessage(void *pvParameters )
 		//wait for previous write to finish
 		if(xSemaphoreTake( semaphoreSendMessage, portMAX_DELAY ) == pdTRUE)
 		{
+                        //try to free sendMessageQueue doing this at start so i know i can only queue a message once the previous one is finished
+                        xQueueReceive( sendMessageQueue, &message, 10 );
+                        NRF_LOG_DEBUG("SendMessage free message");
 			//check to see if there is a message to be sent
 			if(xQueuePeek( sendMessageQueue, &message, portMAX_DELAY ) == pdTRUE)
 			{
@@ -396,11 +484,13 @@ static void SendMessage(void *pvParameters )
 							if(*(c + 1) == '\0')
 							{
 								if(validNextChar == 1){
-									val = SPACE_UNITS_LETTERS;
+									val = GetSpaceUnit(SPACE_UNITS_LETTERS);
+                                                                        NRF_LOG_DEBUG("SendMessage val1: %i", val);
 									xQueueSend( displayQueue, &val, portMAX_DELAY);//space
 								}
 								else{
-									val = SPACE_UNITS_SPACE;
+									val = GetSpaceUnit(SPACE_UNITS_SPACE);
+                                                                        NRF_LOG_DEBUG("SendMessage val2: %i", val);
 									xQueueSend( displayQueue, &val, portMAX_DELAY);//space
 								}
 							}else
@@ -422,8 +512,6 @@ static void SendMessage(void *pvParameters )
                                     xSemaphoreGive(semaphoreSendMessage);
                                 }
 				free(message);
-				xQueueReceive( sendMessageQueue, &message, portMAX_DELAY );
-                                NRF_LOG_DEBUG("SendMessage free message");
 			}
 		}
 	}
@@ -501,6 +589,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     semaphoreSendMessage = xSemaphoreCreateBinary();
     semaphoreStopSendMessage = xSemaphoreCreateBinary();
     semaphoreCompleteNotificationMsg = xSemaphoreCreateBinary(); 
+    semaphoreSendMessageComplete = xSemaphoreCreateBinary(); 
 
     xSemaphoreGive( semaphoreButtonPressActive );
     xSemaphoreGive( semaphoreSendMessage );
@@ -533,7 +622,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
                                        configMINIMAL_STACK_SIZE,
                                        p_context,
                                        priority++,
-                                       NULL);
+                                       &polling_task);
 
     BaseType_t xReturned = xTaskCreate(softdevice_task,
                                        "BLE",

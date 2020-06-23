@@ -151,9 +151,10 @@
 #define MESSAGE_BUFFER_SIZE             17                                          /**< Size of buffer holding optional messages in notifications. */
 #define BLE_ANS_NB_OF_CATEGORY_ID       10                                          /**< Number of categories. */
 
-#define PIN_OUT_MOTOR_SLEEP 13
-#define PIN_OUT 17
-#define PIN_OUT_2 18
+#define PIN_OUT_MOTOR_SLEEP 12
+#define PIN_OUT_MOTOR_MODE 13
+#define PIN_OUT 14
+#define PIN_OUT_2 15
 #define PIN_IN 16
 
 /* TWI instance ID. */
@@ -1134,6 +1135,10 @@ static void gpio_init(void)
     APP_ERROR_CHECK(err_code);
     nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_SLEEP);
 
+    err_code = nrf_drv_gpiote_out_init(PIN_OUT_MOTOR_MODE, &out_config);
+    APP_ERROR_CHECK(err_code);
+    nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_MODE);
+
     err_code = nrf_drv_gpiote_out_init(PIN_OUT_2, &out_config_low);
     APP_ERROR_CHECK(err_code);
 
@@ -1399,6 +1404,8 @@ void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
             readDone = true;
             NRF_LOG_INFO("read done true");
             break;
+        case NRF_DRV_TWI_EVT_ADDRESS_NACK:
+            
         default:
             break;
     }
@@ -1436,37 +1443,31 @@ void twi_init (void)
  *                       after the transfer has completed successfully (allowing
  *                       for a repeated start in the next transfer).
  */
-void write_sensor_data(uint8_t deviceAddress, uint16_t address, uint8_t data)
+void writeSensorData(uint8_t deviceAddress, uint16_t address, uint8_t data)
 {
 
     uint8_t outgoing_data[3] = {address >> 8, address & 0xFF, data};
 
     ret_code_t err_code; 
     readDone = false;
-    NRF_LOG_INFO("read done false");
 
     do{
     err_code = nrf_drv_twi_tx(&m_twi, deviceAddress, outgoing_data, sizeof(outgoing_data), false);
     APP_ERROR_CHECK(err_code);
     nrf_delay_us(500);
     }while(readDone == false);
-    /*{
-        __WFE();
-    }*/
-
-    return;
 }
 
-uint8_t read_sensor_data()//uint8_t deviceAddress, uint16_t address, uint8_t data)
+uint8_t readSensorData(uint8_t deviceAddress, uint16_t address)
 {
+
     readDone = false;
-    NRF_LOG_INFO("read done false");
-    uint8_t outgoing_data[2] = {0x00, 0x80};
+    uint8_t outgoing_data[2] = {address >> 8, address & 0xFF};
 
     ret_code_t err_code; 
     
     do{
-    err_code = nrf_drv_twi_tx(&m_twi, 0x50, outgoing_data, sizeof(outgoing_data), false);
+    err_code = nrf_drv_twi_tx(&m_twi, deviceAddress, outgoing_data, sizeof(outgoing_data), false);
     APP_ERROR_CHECK(err_code);
     nrf_delay_us(500);
     }while(readDone == false);
@@ -1486,7 +1487,7 @@ uint8_t read_sensor_data()//uint8_t deviceAddress, uint16_t address, uint8_t dat
         __WFE();
     }*/
 
-    return resultsWhoAmI;
+    return resultsWhoAmI[0];
 }
 
 /**@brief Function for application main entry.
@@ -1553,6 +1554,8 @@ int main(void)
 
     freertos_init.GetNewAlert = GetNewAlert;
     freertos_init.ReplyToNotification = ReplyToNotification;
+    freertos_init.writeSensorData = writeSensorData;
+    freertos_init.readSensorData = readSensorData;
     nrf_sdh_freertos_init(advertising_start, &erase_bonds, &freertos_init);
 
     //write_sensor_data(0x50, 0x0080, 0xaa);

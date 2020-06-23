@@ -25,8 +25,8 @@ char TranslateChar(uint8_t val, uint8_t pos);
 
 void ButtonPress(uint32_t timeDiffrence, uint8_t ButtonStatus);
 
-int GetSpaceUnit(int pos);
-int GetSpaceUnitModifier();
-void SetSpaceUnitModifier(int newModifier);
+uint8_t GetSpaceUnit(uint8_t pos);
+uint8_t GetSpaceUnitModifier();
+void SetSpaceUnitModifier(uint8_t newModifier);
 
 #endif /* MORSECODETRANSLATOR_H_ */

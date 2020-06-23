@@ -83,7 +83,9 @@ static TaskHandle_t                 m_softdevice_task,              //!< Referen
 //diffrent handlers that will be called
 static nrf_sdh_freertos_task_hook_t m_task_hook;        //!< A hook function run by the SoftDevice task before entering its loop.
 static ble_getNewAlert getNewAlert_hook;   
-static ble_replyToNotification replyToNotification_hook;       
+static ble_replyToNotification replyToNotification_hook;
+static def_writeSensorData writeSensorData_hook;
+static def_readSensorData readSensorData_hook;       
 
 char* notificationMsg = NULL;
 uint8_t notificationMsgLength = 0;
@@ -313,7 +315,7 @@ static void Menu( void *pvParameters )
                                 //save current settings
                                 int originalSpaceMod = GetSpaceUnitModifier();
                                 bool saveChange = false;
-                                for(int i = 1; i < 4; i++)
+                                for(int i = 1; i < 5; i++)
                                 {
                                     NRF_LOG_DEBUG("space unit modify: %i", i);
 
@@ -326,10 +328,10 @@ static void Menu( void *pvParameters )
                                         vTaskSuspend(polling_task);
                                         //  display a test message
                                         test = malloc(5 * sizeof(char));
-                                        test[0] = 'E';
-                                        test[1] = 'E';
+                                        test[0] = 'I';
+                                        test[1] = 'I';
                                         test[2] = ' ';
-                                        test[3] = 'O';
+                                        test[3] = 'I';
                                         test[4] = '\0';
                                         NRF_LOG_DEBUG("display S: '%s'", test);
                                         if(xQueueSend(sendMessageQueue, &test, portMAX_DELAY) == pdTRUE)
@@ -367,6 +369,8 @@ static void Menu( void *pvParameters )
                                     while(invalidMsg);
                                     if(saveChange)
                                     {
+                                        writeSensorData_hook(0x50,0x0080,i);
+                                        //TODO --save variable in eeprom, also load from eeprom on task creation
                                         break;
                                     }
                                 }
@@ -554,6 +558,8 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     m_task_hook = hook_fn;
     getNewAlert_hook = freertos_init->GetNewAlert;
     replyToNotification_hook = freertos_init->ReplyToNotification;
+    writeSensorData_hook = freertos_init->writeSensorData;
+    readSensorData_hook = freertos_init->readSensorData;
 
     /* Create the timer(s) */
     buttonReleasedTimer = xTimerCreate( 	"ButtonReleased", 				/* A text name, purely to help debugging. */
@@ -631,7 +637,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
                                        priority++,
                                        &m_softdevice_task);
 
-
+    SetSpaceUnitModifier(readSensorData_hook(0x50,0x0080));
 
     if (xReturned != pdPASS)
     {

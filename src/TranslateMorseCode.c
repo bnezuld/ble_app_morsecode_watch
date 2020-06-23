@@ -7,8 +7,8 @@
 
 #include "TranslateMorseCode.h"
 
-const int SPACE_UNITS[4] = {1,3,7,11};//{1,8,12,15}
-int spaceUnitModifier = 1;
+const uint8_t SPACE_UNITS[4] = {1,3,7,11};//{1,8,12,15}
+uint8_t spaceUnitModifier = 1u;
 
 /*could do this in a hashtable by using the 'position' to calculate the offset needed*/
 const char MorseCodeTable0[] = {'E','T'};
@@ -112,7 +112,7 @@ void ButtonPress(uint32_t timeDiffrence, uint8_t buttonStatus)
 	}
 }
 
-int GetSpaceUnit(int pos)
+uint8_t GetSpaceUnit(uint8_t pos)
 {
     if(pos == 0)
     {
@@ -121,13 +121,21 @@ int GetSpaceUnit(int pos)
     return SPACE_UNITS[pos] * spaceUnitModifier;
 }
 
-int GetSpaceUnitModifier()
+uint8_t GetSpaceUnitModifier()
 {
     return spaceUnitModifier;
 }
 
-void SetSpaceUnitModifier(int newModifier)
+void SetSpaceUnitModifier(uint8_t newModifier)
 {
+    if(newModifier < 0u)
+    {
+        newModifier = 1u;
+    }
+    else if(newModifier > 4u)
+    {
+        newModifier = 4u;
+    }
     spaceUnitModifier = newModifier;
 }
 

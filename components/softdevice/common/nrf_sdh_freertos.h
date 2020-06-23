@@ -51,10 +51,14 @@ extern "C" {
 
 typedef void (*ble_getNewAlert) ();
 typedef void (*ble_replyToNotification) (char*);
+typedef void (*def_writeSensorData) (uint8_t deviceAddress, uint16_t address, uint8_t data);
+typedef uint8_t (*def_readSensorData) (uint8_t deviceAddress, uint16_t address);
 
 typedef struct{
     ble_getNewAlert  GetNewAlert;
     ble_replyToNotification ReplyToNotification;
+    def_writeSensorData writeSensorData;
+    def_readSensorData readSensorData;
 } sdhfreertos_init;
 
 /**

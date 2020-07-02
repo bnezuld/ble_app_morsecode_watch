@@ -245,7 +245,7 @@ static void Menu( void *pvParameters )
 	char *message = NULL;
 	for(;;){
 		xQueueReceive( messageQueue, &message, portMAX_DELAY );
-		if(strcmp(message, "T") == 0)
+		if(strcmp(message, "T") == 0) 
 		{
 			free(message);
 		}else if(strcmp(message, "N") == 0)
@@ -261,11 +261,11 @@ static void Menu( void *pvParameters )
 			{
                                 NRF_LOG_DEBUG("N menu1");
                                 getNewAlert_hook();
-                                if(xSemaphoreTake(semaphoreCompleteNotificationMsg, 3000*(1.0/(configTICK_RATE_HZ * (.001f)))) == pdTRUE)//TODO - error happening here semaphoreCompleteNotificationMsg is not being given if the notification is empty
+                                if(xSemaphoreTake(semaphoreCompleteNotificationMsg, 10000*(1.0/(configTICK_RATE_HZ * (.001f)))) == pdTRUE)//TODO - error happening here semaphoreCompleteNotificationMsg is not being given if the notification is empty
                                 {
                                     NRF_LOG_DEBUG("N menu2");
 
-                                    xQueueSend(sendMessageQueue, &notificationMsg, 10); 
+                                    xQueueSend(sendMessageQueue, &notificationMsg, portMAX_DELAY); 
                                     notificationMsg = NULL;
                                     notificationMsgLength = 0;
                                 }
@@ -396,7 +396,7 @@ static void Menu( void *pvParameters )
 
 #pragma endregion name
 
-static void DisplayOn( TimerHandle_t xTimer )
+static void DisplayOn( TimerHandle_t xTimer ) 
 {
 	int8_t ulCount = ( int32_t ) pvTimerGetTimerID( xTimer );
 
@@ -405,11 +405,11 @@ static void DisplayOn( TimerHandle_t xTimer )
 		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
 		{
 			vTimerSetTimerID( DisplaySpaceTimer, ( void * ) ulCount );
-			nrf_drv_gpiote_out_set(18);
+			nrf_drv_gpiote_out_clear(15);
 			xTimerReset(DisplaySpaceTimer, 0);
 			return;
 		}else{
-			nrf_drv_gpiote_out_set(18);
+			nrf_drv_gpiote_out_clear(15);
 			xSemaphoreGive(semaphoreSendMessage);
                         xSemaphoreGive(semaphoreSendMessageComplete);
 		}
@@ -429,11 +429,11 @@ static void DisplayOff( TimerHandle_t xTimer )
 		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
 		{
 			vTimerSetTimerID( DisplayBeepTimer, ( void * ) ulCount );
-			nrf_drv_gpiote_out_clear(18);
+			nrf_drv_gpiote_out_set(15);
 			xTimerReset(DisplayBeepTimer, 0);
 			return;
 		}else{
-			nrf_drv_gpiote_out_set(18);
+			nrf_drv_gpiote_out_clear(15);
 			xSemaphoreGive(semaphoreSendMessage);
                         xSemaphoreGive(semaphoreSendMessageComplete);
 		}

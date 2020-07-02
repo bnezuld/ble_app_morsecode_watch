@@ -1128,19 +1128,21 @@ static void gpio_init(void)
     nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
         nrf_drv_gpiote_out_config_t out_config_low = GPIOTE_CONFIG_OUT_SIMPLE(true);
 
-    err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config);
-    APP_ERROR_CHECK(err_code);
-
     err_code = nrf_drv_gpiote_out_init(PIN_OUT_MOTOR_SLEEP, &out_config);
     APP_ERROR_CHECK(err_code);
     nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_SLEEP);
 
     err_code = nrf_drv_gpiote_out_init(PIN_OUT_MOTOR_MODE, &out_config);
     APP_ERROR_CHECK(err_code);
-    nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_MODE);
+    nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_MODE); 
+
+    err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config_low);
+    APP_ERROR_CHECK(err_code);
+    nrf_drv_gpiote_out_clear(PIN_OUT);
 
     err_code = nrf_drv_gpiote_out_init(PIN_OUT_2, &out_config_low);
     APP_ERROR_CHECK(err_code);
+    nrf_drv_gpiote_out_clear(PIN_OUT_2);
 
     nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
     in_config.pull = NRF_GPIO_PIN_PULLUP;

@@ -4,9 +4,11 @@
   <BookmarkItem objectName="" line="119" column="-1" path="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/ble/ble_services/ble_ans_c/ble_ans_c.h" number="1" extra="/** Alert notification control point commands, as defined in the Alert Notification Specification." color="5"/>
  </Bookmarks>
  <Breakpoints groups="Breakpoints" active_group="Breakpoints">
+  <BreakpointListItem trigger="" line="239" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="components/softdevice/common/nrf_sdh_freertos.c" useHWbreakpoint="false"/>
   <BreakpointListItem trigger="" line="268" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="components/softdevice/common/nrf_sdh_freertos.c" useHWbreakpoint="false"/>
   <BreakpointListItem trigger="" line="493" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="components/softdevice/common/nrf_sdh_freertos.c" useHWbreakpoint="false"/>
   <BreakpointListItem trigger="" line="640" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="components/softdevice/common/nrf_sdh_freertos.c" useHWbreakpoint="false"/>
+  <BreakpointListItem trigger="" line="642" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="components/softdevice/common/nrf_sdh_freertos.c" useHWbreakpoint="false"/>
  </Breakpoints>
  <ExecutionProfileWindow/>
  <FrameBufferWindow>
@@ -79,10 +81,10 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="30" y="1138" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="src/main.c" selected="1" top="1116" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="53" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/ble/ble_services/ble_ans_c/ble_ans_c.c" useBinaryEdit="0" left="0" path="components/libraries/bsp/bsp.c" selected="0" top="77" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="28" y="1140" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="src/main.c" selected="1" top="1115" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="53" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/ble/ble_services/ble_ans_c/ble_ans_c.c" useBinaryEdit="0" left="0" path="components/libraries/bsp/bsp.c" selected="0" top="92" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="41" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/softdevice/common/nrf_sdh_freertos.h" selected="0" top="41" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="638" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/src/main.c" useBinaryEdit="0" left="0" path="components/softdevice/common/nrf_sdh_freertos.c" selected="0" top="621" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="639" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/src/main.c" useBinaryEdit="0" left="0" path="components/softdevice/common/nrf_sdh_freertos.c" selected="0" top="628" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="62" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/softdevice/common/nrf_sdh_freertos.c" useBinaryEdit="0" left="0" path="config/FreeRTOSConfig.h" selected="0" top="111" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="57" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/libraries/util/sdk_common.h" selected="0" top="35" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="114" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/softdevice/common/nrf_sdh_freertos.c" useBinaryEdit="0" left="0" path="components/libraries/log/nrf_log.h" selected="0" top="91" codecName="Default"/>
@@ -112,6 +114,7 @@
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="396" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="components/toolchain/cmsis/include/cmsis_gcc.h" selected="0" top="382" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="134" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="src/TranslateMorseCode.c" selected="0" top="118" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="27" useTextEdit="1" openedFrom="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/components/softdevice/common/nrf_sdh_freertos.c" useBinaryEdit="0" left="0" path="src/TranslateMorseCode.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1796" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="external/freertos/source/tasks.c" selected="0" top="1762" codecName="Default"/>
  </Files>
  <ARMCrossStudioWindow activeProject="ble_app_hrs_freertos_pca10040_s132" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/Brandon/Documents/GitHub/ble_app_morsecode_watch/modules/nrfx/drivers/src" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

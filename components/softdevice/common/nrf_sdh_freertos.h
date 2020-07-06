@@ -49,9 +49,21 @@ extern "C" {
 #include "nrf_drv_gpiote.h"
 #include "ble_ans_c.h"
 
+/* Group of FreeRTOS-related includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+#include "queue.h"
+#include "semphr.h"
+
+#include "nrf_pwr_mgmt.h"
+
+#include "TranslateMorseCode.h"
+
 typedef void (*ble_getNewAlert) ();
 typedef void (*ble_replyToNotification) (char*);
 typedef void (*def_writeSensorData) (uint8_t deviceAddress, uint16_t address, uint8_t data);
+typedef void (*def_freertos_event_handler) (uint8_t);
 typedef uint8_t (*def_readSensorData) (uint8_t deviceAddress, uint16_t address);
 
 typedef struct{
@@ -59,7 +71,11 @@ typedef struct{
     ble_replyToNotification ReplyToNotification;
     def_writeSensorData writeSensorData;
     def_readSensorData readSensorData;
+    TaskHandle_t m_logger_thread;
+    def_freertos_event_handler eventHandler;
 } sdhfreertos_init;
+
+enum ble_event {EVENT_DISCONNECT, EVENT_WHITELIST_OFF, ENABLE_UART, DISABLE_UART, ENABLE_INTERRUPTS, DISABLE_INTERRUPTS};
 
 /**
  * @name FreeRTOS implementation of SoftDevice Handler

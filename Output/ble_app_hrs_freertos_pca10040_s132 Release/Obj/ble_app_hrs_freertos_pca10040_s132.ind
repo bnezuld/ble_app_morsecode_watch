@@ -30,6 +30,7 @@
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrf_strerror.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/sensorsim.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrf_queue.o"
+"Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrf_pwr_mgmt.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/ses_startup_nrf52.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/ses_startup_nrf_common.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/system_nrf52.o"

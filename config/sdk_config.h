@@ -48,6 +48,14 @@
 
 // <h> Application 
 
+#define SOFTDEVICE_PRESENT 1
+
+#define PIN_OUT_MOTOR_SLEEP 12
+#define PIN_OUT_MOTOR_MODE 13
+#define PIN_OUT 14
+#define PIN_OUT_2 15
+#define PIN_IN 16
+
 //==========================================================
 // <e> NRF_BLE_GQ_ENABLED - nrf_ble_gq - BLE GATT Queue Module
 //==========================================================
@@ -7192,7 +7200,7 @@
 // <e> NRF_PWR_MGMT_ENABLED - nrf_pwr_mgmt - Power management module
 //==========================================================
 #ifndef NRF_PWR_MGMT_ENABLED
-#define NRF_PWR_MGMT_ENABLED 0
+#define NRF_PWR_MGMT_ENABLED 1
 #endif
 // <e> NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED - Enables pin debug in the module.
 

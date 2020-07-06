@@ -40,15 +40,6 @@
 
 #include "nrf_sdh_freertos.h"
 
-/* Group of FreeRTOS-related includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "queue.h"
-#include "semphr.h"
-
-#include "TranslateMorseCode.h"
-
 #define NRF_LOG_MODULE_NAME nrf_sdh_freertos
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
@@ -78,14 +69,19 @@ static TimerHandle_t buttonReleasedTimer = NULL, buttonPressedTimer = NULL, Disp
 
 static TaskHandle_t                 m_softdevice_task,              //!< Reference to SoftDevice FreeRTOS task.
                                     RecordButtonPressesTask = NULL,
-                                    polling_task = NULL;  
+                                    polling_task = NULL,
+                                    idle_task = NULL;  
+#if NRF_LOG_ENABLED
+static TaskHandle_t m_logger_thread;                                /**< Definition of Logger thread. */
+#endif
 
 //diffrent handlers that will be called
 static nrf_sdh_freertos_task_hook_t m_task_hook;        //!< A hook function run by the SoftDevice task before entering its loop.
 static ble_getNewAlert getNewAlert_hook;   
 static ble_replyToNotification replyToNotification_hook;
 static def_writeSensorData writeSensorData_hook;
-static def_readSensorData readSensorData_hook;       
+static def_readSensorData readSensorData_hook;   
+static def_freertos_event_handler eventHandler;    
 
 char* notificationMsg = NULL;
 uint8_t notificationMsgLength = 0;
@@ -405,11 +401,11 @@ static void DisplayOn( TimerHandle_t xTimer )
 		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
 		{
 			vTimerSetTimerID( DisplaySpaceTimer, ( void * ) ulCount );
-			nrf_drv_gpiote_out_clear(15);
+			nrf_drv_gpiote_out_clear(PIN_OUT_2);
 			xTimerReset(DisplaySpaceTimer, 0);
 			return;
 		}else{
-			nrf_drv_gpiote_out_clear(15);
+			nrf_drv_gpiote_out_clear(PIN_OUT_2);
 			xSemaphoreGive(semaphoreSendMessage);
                         xSemaphoreGive(semaphoreSendMessageComplete);
 		}
@@ -429,11 +425,11 @@ static void DisplayOff( TimerHandle_t xTimer )
 		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
 		{
 			vTimerSetTimerID( DisplayBeepTimer, ( void * ) ulCount );
-			nrf_drv_gpiote_out_set(15);
+			nrf_drv_gpiote_out_set(PIN_OUT_2);
 			xTimerReset(DisplayBeepTimer, 0);
 			return;
 		}else{
-			nrf_drv_gpiote_out_clear(15);
+			nrf_drv_gpiote_out_clear(PIN_OUT_2);
 			xSemaphoreGive(semaphoreSendMessage);
                         xSemaphoreGive(semaphoreSendMessageComplete);
 		}
@@ -551,6 +547,164 @@ void CompleteNotificationMsg()
     xSemaphoreGive(semaphoreCompleteNotificationMsg);
 }
 
+/**@brief A function which is hooked to idle task.
+ * @note Idle hook must be enabled in FreeRTOS configuration (configUSE_IDLE_HOOK).
+ */
+void vApplicationIdleHook( void )
+{
+#if NRF_LOG_ENABLED
+     if(!buffer_is_empty())
+     {
+        vTaskResume(m_logger_thread);
+     }
+#endif
+}
+
+#if configUSE_TICKLESS_IDLE == 2
+disable_interrupts()
+{
+    //xTimerStop(ButtonReleased_handler,0);
+    //xTimerStop(ButtonPressed_handler,0);
+    //xTimerStop(DisplayOff,0);
+    //xTimerStop(DisplayOn,0);
+    //eventHandler(EVENT_DISCONNECT);
+    //__disable_irq();
+    //eventHandler(DISABLE_INTERRUPTS);
+    eventHandler(DISABLE_UART);
+    vTaskSuspend(m_logger_thread);
+    vTaskSuspend(polling_task);
+}
+
+enable_interrupts()
+{
+    //__enable_irq();
+    //eventHandler(ENABLE_INTERRUPTS);
+    eventHandler(ENABLE_UART);
+    //vTaskResume(m_logger_thread);
+    vTaskResume(polling_task);
+}
+
+prvSleep()
+{
+    //shuts off and needs to restart?
+    sd_power_system_off();
+    //sd_app_evt_wait();
+
+    //goes to sleep
+    //nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
+}
+
+prvStopTickInterruptTimer()
+{
+    //vTaskSuspend(idle_task);
+
+    //nrf_rtc_int_disable(portNRF_RTC_REG, NRF_RTC_INT_TICK_MASK);
+
+    /* Configure CTC interrupt */
+    //nrf_rtc_cc_set(portNRF_RTC_REG, 0, wakeupTime);
+    //nrf_rtc_event_clear(portNRF_RTC_REG, NRF_RTC_EVENT_COMPARE_0);
+    //nrf_rtc_int_enable(portNRF_RTC_REG, NRF_RTC_INT_COMPARE0_MASK);
+}
+
+prvStartTickInterruptTimer()
+{
+    //vTaskResume(idle_task);
+    //TickISR()
+    //nrf_rtc_int_enable(portNRF_RTC_REG, NRF_RTC_INT_TICK_MASK);
+}
+
+/* First define the portSUPPRESS_TICKS_AND_SLEEP() macro.  The parameter is the
+time, in ticks, until the kernel next needs to execute. */
+//#define portSUPPRESS_TICKS_AND_SLEEP( xIdleTime ) vApplicationSleep( xIdleTime )
+
+/* Define the function that is called by portSUPPRESS_TICKS_AND_SLEEP(). */
+void portSUPPRESS_TICKS_AND_SLEEP( TickType_t xExpectedIdleTime )
+{
+//if first sleep since wake set timer to give user time to press a button
+
+
+//unsigned long ulLowPowerTimeBeforeSleep, ulLowPowerTimeAfterSleep;
+eSleepModeStatus eSleepStatus;
+
+    /* Read the current time from a time source that will remain operational
+    while the microcontroller is in a low power state. */
+    //ulLowPowerTimeBeforeSleep = ulGetExternalTime();
+
+    /* Stop the timer that is generating the tick interrupt. */
+   
+    prvStopTickInterruptTimer();
+
+    /* Enter a critical section that will not effect interrupts bringing the MCU
+    out of sleep mode. */
+    disable_interrupts();
+
+    nrf_gpio_cfg_sense_input(PIN_IN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
+
+    /* Ensure it is still ok to enter the sleep mode. */
+    eSleepStatus = eTaskConfirmSleepModeStatus();
+
+    if( eSleepStatus == eAbortSleep )
+    {
+        /* A task has been moved out of the Blocked state since this macro was
+        executed, or a context siwth is being held pending.  Do not enter a
+        sleep state.  Restart the tick and exit the critical section. */
+        prvStartTickInterruptTimer();
+        enable_interrupts();
+    }
+    else
+    {
+        if( eSleepStatus == eNoTasksWaitingTimeout )
+        {
+            /* It is not necessary to configure an interrupt to bring the
+            microcontroller out of its low power state at a fixed time in the
+            future. */
+            //NRF_LOG_DEBUG("long sleep");
+            prvSleep();
+        }
+        else
+        {
+            //NRF_LOG_DEBUG("short sleep");
+            /* Configure an interrupt to bring the microcontroller out of its low
+            power state at the time the kernel next needs to execute.  The
+            interrupt must be generated from a source that remains operational
+            when the microcontroller is in a low power state. */
+            //vSetWakeTimeInterrupt( xExpectedIdleTime );//2634 2638 2608
+
+            /* Enter the low power state. */
+            //prvSleep();
+
+            /* Determine how long the microcontroller was actually in a low power
+            state for, which will be less than xExpectedIdleTime if the
+            microcontroller was brought out of low power mode by an interrupt
+            other than that configured by the vSetWakeTimeInterrupt() call.
+            Note that the scheduler is suspended before
+            portSUPPRESS_TICKS_AND_SLEEP() is called, and resumed when
+            portSUPPRESS_TICKS_AND_SLEEP() returns.  Therefore no other tasks will
+            execute until this function completes. */
+            //ulLowPowerTimeAfterSleep = ulGetExternalTime();
+
+            /* Correct the kernels tick count to account for the time the
+            microcontroller spent in its low power state. */
+            //vTaskStepTick( ulLowPowerTimeAfterSleep - ulLowPowerTimeBeforeSleep );
+        }
+
+        /* Exit the critical section - it might be possible to do this immediately
+        after the prvSleep() calls. */
+        enable_interrupts();
+
+        /* Restart the timer that is generating the tick interrupt. */
+        prvStartTickInterruptTimer();
+    }
+}
+#endif
+
+
+nrf_sdh_freertos_TaskStratScheduler()
+{
+    vTaskStartScheduler();
+    idle_task = xTaskGetIdleTaskHandle();
+}
+
 void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_context, sdhfreertos_init const* freertos_init)
 {
     NRF_LOG_DEBUG("Creating a SoftDevice task.");
@@ -560,6 +714,8 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     replyToNotification_hook = freertos_init->ReplyToNotification;
     writeSensorData_hook = freertos_init->writeSensorData;
     readSensorData_hook = freertos_init->readSensorData;
+    m_logger_thread = freertos_init->m_logger_thread;
+    eventHandler = freertos_init->eventHandler;
 
     /* Create the timer(s) */
     buttonReleasedTimer = xTimerCreate( 	"ButtonReleased", 				/* A text name, purely to help debugging. */
@@ -600,7 +756,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     xSemaphoreGive( semaphoreButtonPressActive );
     xSemaphoreGive( semaphoreSendMessage );
 
-    int32_t priority = 1;
+    int32_t priority = 2;
 
                           xTaskCreate(SendMessage,
                                        "SendMessage",

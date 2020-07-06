@@ -70,6 +70,7 @@
       <file file_name="components/libraries/strerror/nrf_strerror.c" />
       <file file_name="components/libraries/sensorsim/sensorsim.c" />
       <file file_name="components/libraries/queue/nrf_queue.c" />
+      <file file_name="components/libraries/pwr_mgmt/nrf_pwr_mgmt.c" />
     </folder>
     <folder Name="None">
       <file file_name="modules/nrfx/mdk/ses_startup_nrf52.s" />

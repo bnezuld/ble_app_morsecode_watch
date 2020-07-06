@@ -158,6 +158,7 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
         TickType_t xModifiableIdleTime;
         TickType_t wakeupTime = (enterTime + xExpectedIdleTime) & portNRF_RTC_MAXTICKS;
 
+
         /* Stop tick events */
         nrf_rtc_int_disable(portNRF_RTC_REG, NRF_RTC_INT_TICK_MASK);
 
@@ -175,6 +176,7 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
          * time variable must remain unmodified, so a copy is taken. */
         xModifiableIdleTime = xExpectedIdleTime;
         configPRE_SLEEP_PROCESSING( xModifiableIdleTime );
+        nrf_drv_gpiote_out_clear(PIN_OUT_MOTOR_SLEEP);
         if ( xModifiableIdleTime > 0 )
         {
 #ifdef SOFTDEVICE_PRESENT
@@ -190,6 +192,7 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
         } while (0 == (NVIC->ISPR[0]));
 #endif
         }
+        nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_SLEEP);
         configPOST_SLEEP_PROCESSING( xExpectedIdleTime );
         nrf_rtc_int_disable(portNRF_RTC_REG, NRF_RTC_INT_COMPARE0_MASK);
         nrf_rtc_event_clear(portNRF_RTC_REG, NRF_RTC_EVENT_COMPARE_0);

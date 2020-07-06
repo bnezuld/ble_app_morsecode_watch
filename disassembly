@@ -1,0 +1,181 @@
+    EA400301    orr.w r3, r0, r1
+    B510        push {r4, lr}
+    079B        lsls r3, r3, #30
+    D10F        bne 0x0000098A
+    2A04        cmp r2, #4
+    D30D        bcc 0x0000098A
+    C810        ldm r0!, {r4}
+    C908        ldm r1!, {r3}
+    1F12        subs r2, r2, #4
+    429C        cmp r4, r3
+    D0F8        beq 0x0000096A
+    BA20        rev r0, r4
+    BA19        rev r1, r3
+    4288        cmp r0, r1
+    D901        bls 0x00000984
+    2001        movs r0, #1
+    BD10        pop {r4, pc}
+    F04F30FF    mov.w r0, #0xFFFFFFFF
+    BD10        pop {r4, pc}
+    B11A        cbz r2, 0x00000994
+    07D3        lsls r3, r2, #31
+    D003        beq 0x00000998
+    1C52        adds r2, r2, #1
+    E007        b 0x000009A4
+    2000        movs r0, #0
+    BD10        pop {r4, pc}
+    F8103B01    ldrb r3, [r0], #1
+    F8114B01    ldrb r4, [r1], #1
+    1B1B        subs r3, r3, r4
+    D107        bne 0x000009B4
+    F8103B01    ldrb r3, [r0], #1
+    F8114B01    ldrb r4, [r1], #1
+    1B1B        subs r3, r3, r4
+    D101        bne 0x000009B4
+    1E92        subs r2, r2, #2
+    D1F1        bne 0x00000998
+    4618        mov r0, r3
+    BD10        pop {r4, pc}
+    F00203FF    and r3, r2, #0xFF
+    EA432203    orr.w r2, r3, r3, lsl #8
+    EA424202    orr.w r2, r2, r2, lsl #16
+    F000B805    b.w 0x000009D2
+    4770        bx lr
+    4770        bx lr
+    4770        bx lr
+    F04F0200    mov.w r2, #0
+    2904        cmp r1, #4
+    F0C08012    bcc.w 0x000009FC
+    F0100C03    ands r12, r0, #3
+    F000801B    beq.w 0x00000A16
+    F1CC0C04    rsb.w r12, r12, #4
+    F1BC0F02    cmp.w r12, #2
+    BF18        it ne
+    F8002B01    strbne r2, [r0], #1
+    BFA8        it ge
+    F8202B02    strhge r2, [r0], #2
+    EBA1010C    sub.w r1, r1, r12
+    F000B80D    b.w 0x00000A16
+    EA5F7CC1    lsls.w r12, r1, #31
+    BF24        itt cs
+    F8002B01    strbcs r2, [r0], #1
+    F8002B01    strbcs r2, [r0], #1
+    BF48        it mi
+    F8002B01    strbmi r2, [r0], #1
+    4770        bx lr
+    F04F0200    mov.w r2, #0
+    B500        push {lr}
+    4613        mov r3, r2
+    4694        mov r12, r2
+    4696        mov lr, r2
+    3920        subs r1, #32
+    BF22        ittt cs
+    E8A0500C    stmcs r0!, {r2-r3, r12, lr}
+    E8A0500C    stmcs r0!, {r2-r3, r12, lr}
+    F1B10120    subscs.w r1, r1, #32
+    F4BFAFF7    bcs.w 0x00000A20
+    0709        lsls r1, r1, #28
+    BF28        it cs
+    E8A0500C    stmcs r0!, {r2-r3, r12, lr}
+    BF48        it mi
+    C00C        stmmi r0!, {r2-r3}
+    F85DEB04    pop.w {lr}
+    0089        lsls r1, r1, #2
+    BF28        it cs
+    F8402B04    strcs r2, [r0], #4
+    BF08        it eq
+    4770        bxeq lr
+    BF48        it mi
+    F8202B02    strhmi r2, [r0], #2
+    F0114F80    tst r1, #0x40000000
+    BF18        it ne
+    F8002B01    strbne r2, [r0], #1
+    4770        bx lr
+    4B01        ldr r3, [pc, #4]
+    681B        ldr r3, [r3]
+    68DB        ldr r3, [r3, #12]
+    4718        bx r3
+    20000000    .word 0x20000000
+    4809        ldr r0, [pc, #0x24]
+    490A        ldr r1, [pc, #0x28]
+    4770        bx lr
+    F7FFFFFB    bl 0x00000A6C
+    F7FFFB45    bl 0x00000104
+    BD00        pop {pc}
+    BF20        wfe
+    E7FD        b 0x00000A7C
+    4B06        ldr r3, [pc, #24]
+    4718        bx r3
+    4A06        ldr r2, [pc, #24]
+    6010        str r0, [r2]
+    6801        ldr r1, [r0]
+    F3818808    msr msp, r1
+    6840        ldr r0, [r0, #4]
+    4700        bx r0
+    0000        movs r0, r0
+    00000B00    .word 0x00000B00
+    00000B00    .word 0x00000B00
+    00000417    .word 0x00000417
+    20000000    .word 0x20000000
+    F01E0F04    tst lr, #4
+    BF0C        ite eq
+    F3EF8108    mrseq r1, msp
+    F3EF8109    mrsne r1, psp
+    6988        ldr r0, [r1, #24]
+    3802        subs r0, #2
+    7800        ldrb r0, [r0]
+    2818        cmp r0, #24
+    D103        bne 0x00000AC4
+    E000        b 0x00000AC0
+    0000        movs r0, r0
+    4A07        ldr r2, [pc, #28]
+    4710        bx r2
+    4A07        ldr r2, [pc, #28]
+    6812        ldr r2, [r2]
+    322C        adds r2, #0x2C
+    6812        ldr r2, [r2]
+    4710        bx r2
+    0000        movs r0, r0
+    B500        push {lr}
+    4B05        ldr r3, [pc, #20]
+    681B        ldr r3, [r3]
+    4A05        ldr r2, [pc, #20]
+    589B        ldr r3, [r3, r2]
+    4798        blx r3
+    BD00        pop {pc}
+    0000        movs r0, r0
+    00000377    .word 0x00000377
+    20000000    .word 0x20000000
+    00000AF0    .word 0x00000AF0
+    00000004    .word 0x00000004
+    1000        asrs r0, r0, #0
+    0000        movs r0, r0
+    0000        movs r0, r0
+    0000        movs r0, r0
+    FF00FFFF    .f32 q7, q8, q15
+    9000        str r0, [sp]
+    03D0        lsls r0, r2, #15
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1
+    FFFFFFFF    vcvt.u32.f32 q15, q15, #1

@@ -334,12 +334,12 @@ static void Menu( void *pvParameters )
                                         {   
                                             //xQueueSend
                                             //  wait for test message to finish
-                                            NRF_LOG_DEBUG("wait for message");
-                                            if(xSemaphoreTake(semaphoreSendMessageComplete, portMAX_DELAY) == pdTRUE)
+                                            //NRF_LOG_DEBUG("wait for message");
+                                            //if(xSemaphoreTake(semaphoreSendMessageComplete, portMAX_DELAY) == pdTRUE)
                                             {
                                                 //update back to original speed
                                                 NRF_LOG_DEBUG("enable polling");
-                                                SetSpaceUnitModifier(originalSpaceMod);
+                                                //SetSpaceUnitModifier(originalSpaceMod);
                                                 //enable button press
                                                 vTaskResume(polling_task);
                                                 //    wait for message
@@ -463,7 +463,7 @@ static void SendMessage(void *pvParameters )
                                         NRF_LOG_DEBUG("SendMessage char: %c", *tmpMsg);
 					//translate message
 					//queue up message for timers to use
-					char* c =  TranslateCharToMorseCode(*tmpMsg);
+					char* c =  TranslateCharToMorseCode(*tmpMsg);//TODO - change morse code translate to return a uint8_t[] which contains the . as 0 and - as 1 ex. N = 00000110b = 6
 					uint8_t validNextChar = *(tmpMsg + 1) != ' ';
 					while(*c != '\0')
 					{

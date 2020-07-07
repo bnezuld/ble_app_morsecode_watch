@@ -311,7 +311,7 @@ static void Menu( void *pvParameters )
                                 //save current settings
                                 int originalSpaceMod = GetSpaceUnitModifier();
                                 bool saveChange = false;
-                                for(int i = 1; i < 5; i++)
+                                for(int i = 1; i <= SPACE_UNIT_MAX; i++)
                                 {
                                     NRF_LOG_DEBUG("space unit modify: %i", i);
 

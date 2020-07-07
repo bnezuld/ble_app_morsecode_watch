@@ -134,9 +134,9 @@ void SetSpaceUnitModifier(uint8_t newModifier)
     {
         newModifier = 1u;
     }
-    else if(newModifier > 4u)
+    else if(newModifier > SPACE_UNIT_MAX)
     {
-        newModifier = 4u;
+        newModifier = SPACE_UNIT_MAX;
     }
     spaceUnitModifier = newModifier;
 }

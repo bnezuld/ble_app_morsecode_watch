@@ -10,105 +10,107 @@
 const uint8_t SPACE_UNITS[4] = {1,3,7,11};//{1,8,12,15}
 uint8_t spaceUnitModifier = 1u;
 
-/*could do this in a hashtable by using the 'position' to calculate the offset needed*/
-const char MorseCodeTable0[] = {'E','T'};
-const char MorseCodeTable1[] = {'I','N','A','M'};
-const char MorseCodeTable2[] = {'S','D','R','G','U','K','W','O'};
-const char MorseCodeTable3[] = {'H','B','L','Z','F','C','P','-','V','X','-','Q','-','Y','J','-'};
+const char MorseCodeHashTable[] = {' ','*','E','T',
+                                   'I','A','N','M','S','U','R','W','D','K','G','O',
+                                   'H','V','F','*','L','*','P','J','B','X','C','Y','Z','Q','*','*',
+                                   '5','4','*','3','*','*','*','2','*','*','*','*','*','*','*','1','6','*','/','*','*','*','*','*','7','*','*','*','8','*','9','0',
+                                   '*','*','*','*','*','*','*','*','*',',','*','*','?','*','*','*','*','*','"','*','*','.','*','*','*','*','*','*','*','*','\'','*','*','-','*','*','*','*','*','*','*','*','*','*','*',')','*','*','*','*','*','*','*','*','*','*',':'};
 
-/*hash table from char to morseCode*/
-const char* TranslateToMorseCode[] = {".-","-...","-.-.","-..",".","..-.","--.","....","..",".---","-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",".--","-..-","-.--","--.."};
+/*hash table from char to morseCode
+1	*----	Period	*-*-*-
+2	**---	Comma	--**--
+3	***--	Colon	---***
+4	****-	Question Mark	**--**
+5	*****	Apostrophe	*----*
+6	-****	Hyphen	-****-
+7	--***	Fraction Bar	-**-*
+8	---**	Parentheses	-*--*-
+9	----*	Quotation Marks	*-**-*
+0	-----	*/
+const char* TranslateToMorseCodeHash[] = {"\0","\0",".-..-.","\0","\0","\0","\0","..--..","-.--.-","-.--.-","\0","\0","--..--","-....-",".-.-.-","-..-.","-----",".----","..---","...--","....-",".....","-....","--...","---..","----.","---...","\0","\0","\0","\0","..--..","\0",".-","-...","-.-.","-..",".","..-.","--.","....","..",".---","-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",".--","-..-","-.--","--..","\0","-..-."};
+
 //const uint8_t TranslateToMorseCodeLength[] = {2,4,4,3,1,4,3,4,2,4,3,4,2,2,3,4,4,3,3,1,3,4,3,4,4,4};
 
 #define MAX_MORSECODE 300
 uint32_t button[MAX_MORSECODE];
 uint32_t buttonCount = 0;
 
+uint8_t IncomingMorseCode[MAX_MORSECODE];
+uint32_t IncomingMorseCodeCount = 0;
+
 char* TranslateCharToMorseCode(char c)
 {
-	if(c >= 65 && c <= 65 + 25)
-		return TranslateToMorseCode[c - 65];
+	if(c >= 32 && c <= 92)
+		return TranslateToMorseCodeHash[c - 32];
 	return (void *) 0;
 }
 
 char* TranslateSelf()
 {
-	return Translate(button,&buttonCount);
+        IncomingMorseCodeCount++;
+	return Translate(IncomingMorseCode,&IncomingMorseCodeCount);
 }
 
-char* Translate(uint32_t *morseCode, uint32_t *count)
+char* Translate(uint8_t *morseCode, uint32_t *count)
 {
 	uint32_t tmpCount = 0;
-	char *c = malloc((*count/2 + 1) * sizeof(char));
+	char *c = malloc((*count + 1) * sizeof(char));
 	uint8_t stringCount = 0;
 	uint8_t position = 1;
 	uint8_t morseCodeValue = 0;
 	uint8_t translateChar;
 	while(tmpCount != *count)
 	{
-		translateChar = 0;
-		if(tmpCount % 2 == 0){//a beep
-			if(morseCode[tmpCount] >= 2){//dash(using 2 to get a better range, as 3 units represents a space/dash)
-				morseCodeValue |= position;
-			}
-			position = position << 1;
-		}else{//a space
-			uint32_t i = morseCode[tmpCount];
-			if(i >= GetSpaceUnit(SPACE_UNITS_LETTERS) - 1){//next letter(using 2 to get a better range, as 3 units represents a space/dash)
-				translateChar++;
-			}
-			if (i >= GetSpaceUnit(SPACE_UNITS_SPACE) - 1){//next word
-				translateChar++;
-			}
-		}
-		tmpCount++;
-		if(translateChar > 0 || tmpCount == *count){
-			c[stringCount++] = TranslateChar(morseCodeValue, position >> 1);
-			morseCodeValue = 0;
-			position = 1;
-		}
-		if(translateChar > 1)
-		{
-			c[stringCount++] = ' ';
-		}
+                c[stringCount++] = TranslateChar(morseCode[tmpCount++]);
 	}
+        IncomingMorseCodeCount = 0;
+        IncomingMorseCode[0] = 0;
 	c[stringCount] = '\0';
 	*count = 0;
 	return c;
 }
 
-char TranslateChar(uint8_t val, uint8_t pos)
+char TranslateChar(uint8_t val)
 {
-	switch(pos)
-	{
-	case 1:
-		return MorseCodeTable0[val];
-	case 2:
-		return MorseCodeTable1[val];
-	case 4:
-		return MorseCodeTable2[val];
-	case 8:
-		return MorseCodeTable3[val];
-	}
-	return '-';
+        //121 is currect size of the MorseCodeHashTable array
+        if(val < 121)
+        {
+          return MorseCodeHashTable[val];
+        }else
+        {
+          return '*';
+        }
 }
 
 void ButtonPress(uint32_t timeDiffrence, uint8_t buttonStatus)
 {
 	if(buttonStatus == 0){// button released
-		if(buttonCount != 0){
-			button[buttonCount++] = timeDiffrence;
-			if(buttonCount >= MAX_MORSECODE)
-			{
-				buttonCount = 0;
-			}
-		}
+                if(IncomingMorseCode[IncomingMorseCodeCount] != 0)
+                {
+                        if(timeDiffrence <= GetSpaceUnit(SPACE_UNITS_LETTERS) - 1)//cotinue with current morse code value
+                        {
+                            IncomingMorseCode[IncomingMorseCodeCount] = IncomingMorseCode[IncomingMorseCodeCount] << 1;
+                        }else if(timeDiffrence <= GetSpaceUnit(SPACE_UNITS_SPACE))//this is the next letter
+                        {
+                            IncomingMorseCodeCount++;
+                            IncomingMorseCode[IncomingMorseCodeCount] = 0;
+                        }else//this is a space and then the next letter
+                        {
+                            IncomingMorseCodeCount++;
+                            IncomingMorseCode[IncomingMorseCodeCount] = 0;
+                            IncomingMorseCodeCount++;
+                            IncomingMorseCode[IncomingMorseCodeCount] = 0;
+                        }
+                }
 	}else{// button pressed
-		button[buttonCount++] = timeDiffrence;
-		if(buttonCount >= MAX_MORSECODE)
-		{
-			buttonCount = 0;
-		}
+                if(IncomingMorseCode[IncomingMorseCodeCount] == 0)
+                {
+                     IncomingMorseCode[IncomingMorseCodeCount] = 2;   
+                }
+                if(timeDiffrence >= 2)
+                {
+                        IncomingMorseCode[IncomingMorseCodeCount] |= 1;
+                }
 	}
 }
 

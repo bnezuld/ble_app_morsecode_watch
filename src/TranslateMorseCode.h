@@ -18,10 +18,10 @@
 
 char* TranslateCharToMorseCode(char c);
 
-char* Translate(uint32_t *morseCode, uint32_t *count);
+char* Translate(uint8_t *morseCode, uint32_t *count);
 char* TranslateSelf();
 
-char TranslateChar(uint8_t val, uint8_t pos);
+char TranslateChar(uint8_t val);
 
 void ButtonPress(uint32_t timeDiffrence, uint8_t ButtonStatus);
 

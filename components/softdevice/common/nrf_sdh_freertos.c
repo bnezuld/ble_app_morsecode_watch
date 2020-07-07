@@ -248,7 +248,7 @@ static void Menu( void *pvParameters )
 		{
 			free(message);
 
-			char* test = malloc(3 * sizeof(char));
+			char* test = malloc(2 * sizeof(char));
 			test[0] = 'N';
 			test[1] = '\0';
 			//try to queue test
@@ -280,7 +280,7 @@ static void Menu( void *pvParameters )
 			xSemaphoreGive(semaphoreStopSendMessage);
 			xQueueReset(displayQueue);
                         
-                        char* test = malloc(3 * sizeof(char));
+                        char* test = malloc(2 * sizeof(char));
 			test[0] = 'R';
 			test[1] = '\0';
 			//try to queue test
@@ -382,6 +382,17 @@ static void Menu( void *pvParameters )
 		}else
 		{
 			free(message);
+                        char* test = malloc(2 * sizeof(char));
+			test[0] = 'I';
+			test[1] = '\0';
+			//try to queue test
+			if(xQueueSend(sendMessageQueue, &test, 10) == pdTRUE)
+			{
+
+			}else
+			{
+                            free(test);
+			}
 		}
 	}
 }

@@ -176,7 +176,6 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
          * time variable must remain unmodified, so a copy is taken. */
         xModifiableIdleTime = xExpectedIdleTime;
         configPRE_SLEEP_PROCESSING( xModifiableIdleTime );
-        nrf_drv_gpiote_out_clear(PIN_OUT_MOTOR_SLEEP);
         if ( xModifiableIdleTime > 0 )
         {
 #ifdef SOFTDEVICE_PRESENT

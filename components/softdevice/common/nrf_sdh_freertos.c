@@ -571,6 +571,18 @@ void vApplicationIdleHook( void )
 #endif
 }
 
+void PRE_SLEEP_PROCESSING(TickType_t ticks)
+{
+    nrf_drv_gpiote_out_clear(PIN_OUT_MOTOR_SLEEP);
+    eventHandler(DISABLE_UART);
+}
+
+void POST_SLEEP_PROCESSING(TickType_t ticks)
+{
+    nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_SLEEP);
+    eventHandler(ENABLE_UART);
+}
+
 #if configUSE_TICKLESS_IDLE == 2
 disable_interrupts()
 {

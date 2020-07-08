@@ -52,9 +52,13 @@
 
 #define PIN_OUT_MOTOR_SLEEP 12
 #define PIN_OUT_MOTOR_MODE 13
-#define PIN_OUT 14
-#define PIN_OUT_2 15
+#define PIN_OUT 17
+#define PIN_OUT_2 18
 #define PIN_IN 16
+
+
+#define configPRE_SLEEP_PROCESSING    PRE_SLEEP_PROCESSING
+#define configPOST_SLEEP_PROCESSING   POST_SLEEP_PROCESSING
 
 //==========================================================
 // <e> NRF_BLE_GQ_ENABLED - nrf_ble_gq - BLE GATT Queue Module

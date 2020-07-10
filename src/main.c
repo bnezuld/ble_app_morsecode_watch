@@ -97,6 +97,9 @@
 
 #include "nrf_delay.h"
 
+#include "nrf_drv_rtc.h"
+#include "nrf_drv_clock.h"
+
 
 
 
@@ -1468,6 +1471,28 @@ uint8_t readSensorData(uint8_t deviceAddress, uint16_t address)
     return resultsWhoAmI[0];
 }
 
+//const nrf_drv_rtc_t rtc = NRF_DRV_RTC_INSTANCE(2);//
+
+
+/** @brief Function initialization and configuration of RTC driver instance.
+ */
+static void rtc_config(void)
+{
+    /* Request LF clock */
+    nrf_drv_clock_lfclk_request(NULL);
+
+    // Configure the RTC for 1 minute wakeup (default)
+    NRF_RTC2->PRESCALER = 0xFFF;
+    NRF_RTC2->EVTENSET = RTC_EVTENSET_COMPARE0_Msk;
+    NRF_RTC2->INTENSET = RTC_INTENSET_COMPARE0_Msk;
+    NRF_RTC2->CC[0] = 60 * 8;
+    NRF_RTC2->TASKS_START = 1;
+
+
+    NVIC_SetPriority(RTC2_IRQn, configKERNEL_INTERRUPT_PRIORITY);
+    NVIC_EnableIRQ(RTC2_IRQn);
+}
+
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -1509,6 +1534,7 @@ int main(void)
     gpio_init();
     twi_init();
     application_timers_start();
+    rtc_config();
 
 
 

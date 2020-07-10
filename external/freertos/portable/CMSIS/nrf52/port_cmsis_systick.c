@@ -121,6 +121,7 @@ void xPortSysTickHandler( void )
     uint32_t isrstate = portSET_INTERRUPT_MASK_FROM_ISR();
 
     uint32_t systick_counter = nrf_rtc_counter_get(portNRF_RTC_REG);
+    //here use the systick_counter to incriment timer for a calander portion of application
     nrf_rtc_event_clear(portNRF_RTC_REG, NRF_RTC_EVENT_TICK);
 
     if (configUSE_DISABLE_TICK_AUTO_CORRECTION_DEBUG == 0)

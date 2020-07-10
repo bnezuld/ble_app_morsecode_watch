@@ -58,6 +58,8 @@ extern "C" {
 
 #include "nrf_pwr_mgmt.h"
 
+#include "time.h"
+
 #include "TranslateMorseCode.h"
 
 typedef void (*ble_getNewAlert) ();

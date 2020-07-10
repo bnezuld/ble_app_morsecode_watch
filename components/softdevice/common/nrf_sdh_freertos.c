@@ -85,6 +85,9 @@ static def_freertos_event_handler eventHandler;
 
 char* notificationMsg = NULL;
 uint8_t notificationMsgLength = 0;
+
+time_t m_time = 0;
+static struct tm time_struct; 
      
 struct ButtonPress{
 	uint8_t time;
@@ -243,7 +246,20 @@ static void Menu( void *pvParameters )
 		xQueueReceive( messageQueue, &message, portMAX_DELAY );
 		if(strcmp(message, "T") == 0) 
 		{
-			free(message);
+                        free(message);
+
+                        time_struct = *localtime(&m_time);
+                        char* test = malloc(6 * sizeof(char));
+                        test[0] = time_struct.tm_hour/10 + 48;
+                        test[1] = time_struct.tm_hour%10 + 48;
+                        test[2] = ' ';
+                        test[3] = time_struct.tm_min/10 + 48;
+                        test[4] = time_struct.tm_min%10 + 48;
+                        test[5] = '\0';
+                        if(xQueueSend(sendMessageQueue, &test, 10) != pdTRUE)
+			{
+				free(test);
+			}
 		}else if(strcmp(message, "N") == 0)
 		{
 			free(message);
@@ -581,6 +597,19 @@ void POST_SLEEP_PROCESSING(TickType_t ticks)
 {
     nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_SLEEP);
     eventHandler(ENABLE_UART);
+}
+
+void RTC2_IRQHandler(void)
+{
+    if(NRF_RTC2->EVENTS_COMPARE[0])
+    {
+        NRF_RTC2->EVENTS_COMPARE[0] = 0;
+        
+        NRF_RTC2->TASKS_CLEAR = 1;
+        
+        m_time += 60;
+        //if(cal_event_callback) cal_event_callback();
+    }
 }
 
 #if configUSE_TICKLESS_IDLE == 2

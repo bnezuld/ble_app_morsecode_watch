@@ -89,6 +89,7 @@
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/ble_dis.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/ble_hrs.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/ble_ans_c.o"
+"Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/ble_cts_c.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrf_sdh.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrf_sdh_ble.o"
 "Output/ble_app_hrs_freertos_pca10040_s132 Release/Obj/nrf_sdh_freertos.o"

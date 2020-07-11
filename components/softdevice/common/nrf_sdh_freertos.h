@@ -65,7 +65,7 @@ extern "C" {
 typedef void (*ble_getNewAlert) ();
 typedef void (*ble_replyToNotification) (char*);
 typedef void (*def_writeSensorData) (uint8_t deviceAddress, uint16_t address, uint8_t data);
-typedef void (*def_freertos_event_handler) (uint8_t);
+typedef bool (*def_freertos_event_handler) (uint8_t);
 typedef uint8_t (*def_readSensorData) (uint8_t deviceAddress, uint16_t address);
 
 typedef struct{
@@ -77,7 +77,7 @@ typedef struct{
     def_freertos_event_handler eventHandler;
 } sdhfreertos_init;
 
-enum ble_event {EVENT_DISCONNECT, EVENT_WHITELIST_OFF, ENABLE_UART, DISABLE_UART, ENABLE_INTERRUPTS, DISABLE_INTERRUPTS};
+enum ble_event {EVENT_DISCONNECT, EVENT_WHITELIST_OFF, ENABLE_UART, DISABLE_UART, ENABLE_INTERRUPTS, DISABLE_INTERRUPTS, GET_CURRENT_TIME};
 
 /**
  * @name FreeRTOS implementation of SoftDevice Handler
@@ -102,6 +102,8 @@ void ISR_buttonPressed();
 void AddToNotificationMsg(char* str, uint8_t length);
 
 void CompleteNotificationMsg();
+
+void UpdateCurrentTime(time_t updateTime);
 
 
 #ifdef __cplusplus

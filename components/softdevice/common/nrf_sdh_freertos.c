@@ -63,7 +63,8 @@ static SemaphoreHandle_t  semaphoreButtonPressed = NULL, semaphoreButtonPressAct
                           semaphoreButtonReleased = NULL, semaphoreButtonReleaseActive = NULL,
                           semaphoreSendMessage = NULL, semaphoreStopSendMessage = NULL,
                           semaphoreCompleteNotificationMsg = NULL,
-                          semaphoreSendMessageComplete = NULL;
+                          semaphoreSendMessageComplete = NULL,
+                          semaphoreCurrentTimeComplete = NULL;
 
 static TimerHandle_t buttonReleasedTimer = NULL, buttonPressedTimer = NULL, DisplaySpaceTimer = NULL, DisplayBeepTimer = NULL;
 
@@ -247,7 +248,14 @@ static void Menu( void *pvParameters )
 		if(strcmp(message, "T") == 0) 
 		{
                         free(message);
-
+                        if(eventHandler(GET_CURRENT_TIME))
+                        {
+                                if(xSemaphoreTake(semaphoreCurrentTimeComplete, 10000*(1.0/(configTICK_RATE_HZ * (.001f)))) == pdTRUE)
+                                {
+                                        //update m_time is complete
+                                }
+                        }
+                        
                         time_struct = *localtime(&m_time);
                         char* test = malloc(6 * sizeof(char));
                         test[0] = time_struct.tm_hour/10 + 48;
@@ -257,9 +265,10 @@ static void Menu( void *pvParameters )
                         test[4] = time_struct.tm_min%10 + 48;
                         test[5] = '\0';
                         if(xQueueSend(sendMessageQueue, &test, 10) != pdTRUE)
-			{
-				free(test);
-			}
+                        {
+                                free(test);
+                        }
+                
 		}else if(strcmp(message, "N") == 0)
 		{
 			free(message);
@@ -570,8 +579,14 @@ void AddToNotificationMsg(char* str, uint8_t length)
 void CompleteNotificationMsg()
 {
     //give semahpore to signal notification is completely received
-        NRF_LOG_DEBUG("CompleteNotificationMsg %d: %s", notificationMsgLength, notificationMsg);
+    NRF_LOG_DEBUG("CompleteNotificationMsg %d: %s", notificationMsgLength, notificationMsg);
     xSemaphoreGive(semaphoreCompleteNotificationMsg);
+}
+
+void UpdateCurrentTime(time_t updateTime)
+{
+    m_time = updateTime - NRF_RTC2->COUNTER/8;
+    xSemaphoreGive(semaphoreCurrentTimeComplete);
 }
 
 /**@brief A function which is hooked to idle task.
@@ -804,6 +819,7 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     semaphoreStopSendMessage = xSemaphoreCreateBinary();
     semaphoreCompleteNotificationMsg = xSemaphoreCreateBinary(); 
     semaphoreSendMessageComplete = xSemaphoreCreateBinary(); 
+    semaphoreCurrentTimeComplete = xSemaphoreCreateBinary(); 
 
     xSemaphoreGive( semaphoreButtonPressActive );
     xSemaphoreGive( semaphoreSendMessage );

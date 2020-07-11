@@ -100,6 +100,9 @@
 #include "nrf_drv_rtc.h"
 #include "nrf_drv_clock.h"
 
+#include "ble_cts_c.h"
+#include "ble_date_time.h"
+
 
 
 
@@ -170,6 +173,7 @@ NRF_BLE_GATT_DEF(m_gatt);                                           /**< GATT mo
 NRF_BLE_QWR_DEF(m_qwr);                                             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                 /**< Advertising module instance. */
 BLE_ANS_C_DEF(m_ans_c);  
+BLE_CTS_C_DEF(m_cts_c);                                                             /**< Current Time service instance. */
 BLE_DB_DISCOVERY_DEF(m_ble_db_discovery);  
 NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                                    /**< BLE GATT Queue instance. */
                NRF_SDH_BLE_PERIPHERAL_LINK_COUNT,
@@ -496,7 +500,14 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
  */
 static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
 {
-    ble_ans_c_on_db_disc_evt(&m_ans_c, p_evt);
+    //if(p_evt->params.discovered_db.srv_uuid.uuid == BLE_UUID_ALERT_NOTIFICATION_SERVICE)
+    {
+        ble_ans_c_on_db_disc_evt(&m_ans_c, p_evt);
+    }
+    //if(p_evt->params.discovered_db.srv_uuid.uuid == BLE_UUID_CURRENT_TIME_SERVICE)
+    {
+        ble_cts_c_on_db_disc_evt(&m_cts_c, p_evt);
+    }
 }
 
 /** @brief Database discovery module initialization.
@@ -767,11 +778,84 @@ static void on_ans_c_evt(ble_ans_c_evt_t * p_evt)
     }
 }
 
+
 /**@brief Function for handling the Alert Notification Service Client errors.
  *
  * @param[in]   nrf_error   Error code containing information about what went wrong.
  */
 static void alert_notification_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
+
+
+/**@brief Function for handling the Current Time Service client events.
+ *
+ * @details This function will be called for all events in the Current Time Service client that
+ *          are passed to the application.
+ *
+ * @param[in] p_evt Event received from the Current Time Service client.
+ */
+static void on_cts_c_evt(ble_cts_c_t * p_cts, ble_cts_c_evt_t * p_evt)
+{
+    ret_code_t err_code;
+
+    switch (p_evt->evt_type)
+    {
+        case BLE_CTS_C_EVT_DISCOVERY_COMPLETE:
+            NRF_LOG_INFO("Current Time Service discovered on server.");
+            err_code = ble_cts_c_handles_assign(&m_cts_c,
+                                                p_evt->conn_handle,
+                                                &p_evt->params.char_handles);
+            APP_ERROR_CHECK(err_code);
+            break;
+
+        case BLE_CTS_C_EVT_DISCOVERY_FAILED:
+            NRF_LOG_INFO("Current Time Service not found on server. ");
+            // CTS not found in this case we just disconnect. There is no reason to stay
+            // in the connection for this simple app since it all wants is to interact with CT
+            if (p_evt->conn_handle != BLE_CONN_HANDLE_INVALID)
+            {
+                err_code = sd_ble_gap_disconnect(p_evt->conn_handle,
+                                                 BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+                APP_ERROR_CHECK(err_code);
+            }
+            break;
+
+        case BLE_CTS_C_EVT_DISCONN_COMPLETE:
+            NRF_LOG_INFO("Disconnect Complete.");
+            break;
+
+        case BLE_CTS_C_EVT_CURRENT_TIME:
+            NRF_LOG_INFO("Current Time received.");
+            //current_time_print(p_evt);
+            time_t updateTime = 0;
+            static struct tm time_struct;
+            time_struct.tm_year = p_evt->params.current_time.exact_time_256.day_date_time.date_time.year - 1900;
+            time_struct.tm_mon = p_evt->params.current_time.exact_time_256.day_date_time.date_time.month;
+            time_struct.tm_mday = p_evt->params.current_time.exact_time_256.day_date_time.date_time.day;
+            time_struct.tm_hour = p_evt->params.current_time.exact_time_256.day_date_time.date_time.hours;
+            time_struct.tm_min = p_evt->params.current_time.exact_time_256.day_date_time.date_time.minutes;
+            time_struct.tm_sec = p_evt->params.current_time.exact_time_256.day_date_time.date_time.seconds;   
+            updateTime = mktime(&time_struct);
+            UpdateCurrentTime(updateTime);
+            break;
+
+        case BLE_CTS_C_EVT_INVALID_TIME:
+            NRF_LOG_INFO("Invalid Time received.");
+            break;
+
+        default:
+            break;
+    }
+} 
+
+
+/**@brief Function for handling the Current Time Service errors.
+ *
+ * @param[in]  nrf_error  Error code containing information about what went wrong.
+ */
+static void current_time_error_handler(uint32_t nrf_error)
 {
     APP_ERROR_HANDLER(nrf_error);
 }
@@ -788,6 +872,7 @@ static void services_init(void)
     ble_bas_init_t     bas_init;
     ble_dis_init_t     dis_init;
     ble_ans_c_init_t     ans_c_init;
+    ble_cts_c_init_t   cts_init;
     nrf_ble_qwr_init_t qwr_init = {0};
     uint8_t            body_sensor_location;
 
@@ -850,6 +935,13 @@ static void services_init(void)
     ans_c_init.p_gatt_queue        = &m_ble_gatt_queue;
 
     err_code = ble_ans_c_init(&m_ans_c, &ans_c_init);
+    APP_ERROR_CHECK(err_code);
+
+    // Initialize CTS.
+    cts_init.evt_handler   = on_cts_c_evt;
+    cts_init.error_handler = current_time_error_handler;
+    cts_init.p_gatt_queue  = &m_ble_gatt_queue;
+    err_code               = ble_cts_c_init(&m_cts_c, &cts_init);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -1042,6 +1134,15 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_DISCONNECTED:
             NRF_LOG_INFO("Disconnected");
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
+            if (p_ble_evt->evt.gap_evt.conn_handle == m_cts_c.conn_handle)
+            {
+                m_cts_c.conn_handle = BLE_CONN_HANDLE_INVALID;
+            }
+            if (p_ble_evt->evt.gap_evt.conn_handle == m_ans_c.conn_handle)
+            {
+                m_ans_c.conn_handle = BLE_CONN_HANDLE_INVALID;
+            }
+
             break;
 
         case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
@@ -1161,7 +1262,7 @@ static void gpio_init(void)
  *
  * @param[in]   event   Event generated by button press.
  */
-static void freertos_event_handler(uint8_t event)
+static bool freertos_event_handler(uint8_t event)
 {
     ret_code_t err_code;
     switch (event)
@@ -1172,6 +1273,9 @@ static void freertos_event_handler(uint8_t event)
             if (err_code != NRF_ERROR_INVALID_STATE)
             {
                 APP_ERROR_CHECK(err_code);
+            }else
+            {
+                return false;
             }
             break;
 
@@ -1182,7 +1286,13 @@ static void freertos_event_handler(uint8_t event)
                 if (err_code != NRF_ERROR_INVALID_STATE)
                 {
                     APP_ERROR_CHECK(err_code);
+                }else
+                {
+                    return false;
                 }
+            }else
+            {
+                return false;
             }
             break;
 
@@ -1204,9 +1314,25 @@ static void freertos_event_handler(uint8_t event)
 
             nrf_drv_gpiote_in_event_enable(PIN_IN, true);
             break;
+        case GET_CURRENT_TIME:
+            if (m_cts_c.conn_handle != BLE_CONN_HANDLE_INVALID)
+            {
+                err_code = ble_cts_c_current_time_read(&m_cts_c);
+                if (err_code == NRF_ERROR_NOT_FOUND)
+                {
+                    NRF_LOG_INFO("Current Time Service is not discovered.");
+                    return false;
+                }
+            }else
+            {
+                return false;
+            }
+            break;
         default:
+            return false;
             break;
     }
+    return true;
 }
 
 

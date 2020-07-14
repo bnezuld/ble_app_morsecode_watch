@@ -99,7 +99,7 @@
 #define configTIMER_TASK_STACK_DEPTH                                              ( 180 )
 
 /* Tickless Idle configuration. */
-#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP                                     900000
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP                                     300
 
 /* Tickless idle/low power functionality. */
 

@@ -89,6 +89,8 @@ uint8_t notificationMsgLength = 0;
 
 time_t m_time = 0;
 static struct tm time_struct; 
+
+uint8_t displayOut = 0;
      
 struct ButtonPress{
 	uint8_t time;
@@ -172,6 +174,7 @@ static void ButtonPressed_handler( TimerHandle_t xTimer )
 void ISRButtonPressed()
 {
     portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+    TurnOnDisplay(1);
     if(xSemaphoreTakeFromISR( semaphoreButtonPressActive, &xHigherPriorityTaskWoken ) == pdTRUE){
         xSemaphoreGiveFromISR( semaphoreButtonPressed, &xHigherPriorityTaskWoken );
     }
@@ -181,6 +184,7 @@ void ISRButtonPressed()
 void ISRButtonReleased()
 {
     portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+    TurnOffDisplay(1);
     if(xSemaphoreTakeFromISR( semaphoreButtonReleaseActive, &xHigherPriorityTaskWoken ) == pdTRUE){
         xSemaphoreGiveFromISR( semaphoreButtonReleased, &xHigherPriorityTaskWoken );
     }
@@ -334,70 +338,56 @@ static void Menu( void *pvParameters )
                             if(xSemaphoreTake(semaphoreSendMessageComplete, portMAX_DELAY) == pdTRUE)
                             {
                                 //save current settings
-                                int originalSpaceMod = GetSpaceUnitModifier();
+                                uint8_t originalSpaceMod = GetSpaceUnitModifier(), updateSpeed = 0, msgSize = 0;
                                 bool saveChange = false;
-                                for(int i = 1; i <= SPACE_UNIT_MAX; i++)
+
+                                xQueueReceive( messageQueue, &message, portMAX_DELAY );
+                                while(message[msgSize] != '\0' && msgSize <= 3)
                                 {
-                                    NRF_LOG_DEBUG("space unit modify: %i", i);
-
-                                    SetSpaceUnitModifier(i);
-
-                                    bool invalidMsg = false;
-                                    do{
-                                        invalidMsg = false;
-                                        //  disable button press
-                                        vTaskSuspend(polling_task);
-                                        //  display a test message
-                                        test = malloc(5 * sizeof(char));
-                                        test[0] = 'I';
-                                        test[1] = 'I';
-                                        test[2] = ' ';
-                                        test[3] = 'I';
-                                        test[4] = '\0';
-                                        NRF_LOG_DEBUG("display S: '%s'", test);
-                                        if(xQueueSend(sendMessageQueue, &test, portMAX_DELAY) == pdTRUE)
-                                        {   
-                                            //xQueueSend
-                                            //  wait for test message to finish
-                                            //NRF_LOG_DEBUG("wait for message");
-                                            //if(xSemaphoreTake(semaphoreSendMessageComplete, portMAX_DELAY) == pdTRUE)
-                                            {
-                                                //update back to original speed
-                                                NRF_LOG_DEBUG("enable polling");
-                                                //SetSpaceUnitModifier(originalSpaceMod);
-                                                //enable button press
-                                                vTaskResume(polling_task);
-                                                //    wait for message
-                                                xQueueReceive( messageQueue, &message, portMAX_DELAY );
-                                                if(strcmp(message, "E") == 0)
-                                                {
-                                                    SetSpaceUnitModifier(i);
-                                                    saveChange = true;
-                                                }else if(strcmp(message, "I") == 0)
-                                                {
-                                        
-                                                }else
-                                                {
-                                                    SetSpaceUnitModifier(i);
-                                                    invalidMsg = true;
-                                                }
-                                            }
-                                        }else
-                                        {
-                                            free(test);
-                                        }
-                                    }
-                                    while(invalidMsg);
-                                    if(saveChange)
-                                    {
-                                        writeSensorData_hook(0x50,0x0080,i);
-                                        //TODO --save variable in eeprom, also load from eeprom on task creation
-                                        break;
-                                    }
+                                    msgSize++;
+                                };
+                                if(msgSize < 3)
+                                {
+                                      for(int position = 0; position < msgSize; position++)
+                                      {
+                                          uint8_t messageNumber = message[position] - '0';
+                                          if(messageNumber >= 0 && messageNumber < 10)
+                                          {
+                                              updateSpeed += messageNumber * ((msgSize - position) == 2 ? 10 : 1);
+                                              saveChange = true;
+                                          }else
+                                          {
+                                              saveChange = false;
+                                              break;
+                                          }
+                                      }
                                 }
+                                
+                                free(message);
+                                
                                 if(!saveChange)
                                 {
                                     SetSpaceUnitModifier(originalSpaceMod);
+
+                                    char* display = malloc(2 * sizeof(char));
+                                    display[0] = 'I';
+                                    display[1] = '\0';
+                                    if(xQueueSend(sendMessageQueue, &display, portMAX_DELAY) != pdTRUE)
+                                    {
+                                        free(display);
+                                    }
+                                }else 
+                                {
+                                    SetSpaceUnitModifier(updateSpeed);
+                                    writeSensorData_hook(0x50,0x0080,updateSpeed);
+
+                                    char* display = malloc(2 * sizeof(char));
+                                    display[0] = 'E';
+                                    display[1] = '\0';
+                                    if(xQueueSend(sendMessageQueue, &display, portMAX_DELAY) != pdTRUE)
+                                    {
+                                        free(display);
+                                    }
                                 }
                             }else
                             {
@@ -437,11 +427,11 @@ static void DisplayOn( TimerHandle_t xTimer )
 		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
 		{
 			vTimerSetTimerID( DisplaySpaceTimer, ( void * ) ulCount );
-			nrf_drv_gpiote_out_clear(PIN_OUT_2);
+                        TurnOffDisplay(1 << 1);
 			xTimerReset(DisplaySpaceTimer, 0);
 			return;
 		}else{
-			nrf_drv_gpiote_out_clear(PIN_OUT_2);
+                        TurnOffDisplay(1 << 1);
 			xSemaphoreGive(semaphoreSendMessage);
                         xSemaphoreGive(semaphoreSendMessageComplete);
 		}
@@ -461,11 +451,11 @@ static void DisplayOff( TimerHandle_t xTimer )
 		if(xQueueReceive( displayQueue, &ulCount, 0) == pdTRUE)
 		{
 			vTimerSetTimerID( DisplayBeepTimer, ( void * ) ulCount );
-			nrf_drv_gpiote_out_set(PIN_OUT_2);
+                        TurnOnDisplay(1 << 1);
 			xTimerReset(DisplayBeepTimer, 0);
 			return;
 		}else{
-			nrf_drv_gpiote_out_clear(PIN_OUT_2);
+                        TurnOffDisplay(1 << 1);
 			xSemaphoreGive(semaphoreSendMessage);
                         xSemaphoreGive(semaphoreSendMessageComplete);
 		}
@@ -605,12 +595,14 @@ void vApplicationIdleHook( void )
 void PRE_SLEEP_PROCESSING(TickType_t ticks)
 {
     nrf_drv_gpiote_out_clear(PIN_OUT_MOTOR_SLEEP);
+    nrf_drv_gpiote_out_clear(PIN_OUT_MOTOR_MODE);
     eventHandler(DISABLE_UART);
 }
 
 void POST_SLEEP_PROCESSING(TickType_t ticks)
 {
     nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_SLEEP);
+    nrf_drv_gpiote_out_set(PIN_OUT_MOTOR_MODE);
     eventHandler(ENABLE_UART);
 }
 
@@ -624,6 +616,21 @@ void RTC2_IRQHandler(void)
         
         m_time += 60;
         //if(cal_event_callback) cal_event_callback();
+    }
+}
+
+void TurnOnDisplay(uint8_t displayPort)
+{
+    displayOut |= displayPort;
+    eventHandler(ENABLE_DISPLAY_OUT);
+}
+
+void TurnOffDisplay(uint8_t displayPort)
+{
+    displayOut &= ~displayPort;
+    if(displayOut == 0)
+    {
+        eventHandler(DISABLE_DISPLAY_OUT);
     }
 }
 

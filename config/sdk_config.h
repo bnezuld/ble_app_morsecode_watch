@@ -52,8 +52,7 @@
 
 #define PIN_OUT_MOTOR_SLEEP 12
 #define PIN_OUT_MOTOR_MODE 13
-#define PIN_OUT 14
-#define PIN_OUT_2 15
+#define PIN_OUT 17
 #define PIN_IN 16
 
 

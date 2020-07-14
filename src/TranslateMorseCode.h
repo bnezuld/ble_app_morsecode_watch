@@ -14,7 +14,7 @@
 #define SPACE_UNITS_SPACE 2//at normal speed should be 9?
 #define SPACE_UNITS_END_OF_MESSAGE 3
 
-#define SPACE_UNIT_MAX 5u
+#define SPACE_UNIT_MAX 10u
 
 #define DASH_UNIT 3//if less than a DASH_UNIT its a DOT_UNIT
 

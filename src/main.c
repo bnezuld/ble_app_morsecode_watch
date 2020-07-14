@@ -1211,11 +1211,9 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
     if(!is_set)
     {
       ISRButtonReleased();
-      nrf_drv_gpiote_out_clear(PIN_OUT);
     }else
     {
       ISRButtonPressed();
-      nrf_drv_gpiote_out_set(PIN_OUT);
     }
 }
 /**
@@ -1244,9 +1242,9 @@ static void gpio_init(void)
     APP_ERROR_CHECK(err_code);
     nrf_drv_gpiote_out_clear(PIN_OUT);
 
-    err_code = nrf_drv_gpiote_out_init(PIN_OUT_2, &out_config_low);
-    APP_ERROR_CHECK(err_code);
-    nrf_drv_gpiote_out_clear(PIN_OUT_2);
+    //err_code = nrf_drv_gpiote_out_init(PIN_OUT_2, &out_config_low);
+    //APP_ERROR_CHECK(err_code);
+    //nrf_drv_gpiote_out_clear(PIN_OUT_2);
 
     nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
     in_config.pull = NRF_GPIO_PIN_PULLUP;
@@ -1327,6 +1325,12 @@ static bool freertos_event_handler(uint8_t event)
             {
                 return false;
             }
+            break;
+        case ENABLE_DISPLAY_OUT:
+            nrf_drv_gpiote_out_set(PIN_OUT);
+            break;
+        case DISABLE_DISPLAY_OUT:
+            nrf_drv_gpiote_out_clear(PIN_OUT);
             break;
         default:
             return false;

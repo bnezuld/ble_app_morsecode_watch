@@ -394,7 +394,39 @@ static void Menu( void *pvParameters )
                                 free(test);
                             }
                         }
-		}else
+		}else if(strcmp(message, "D") == 0)
+		{
+			free(message);
+                        if(eventHandler(GET_CURRENT_TIME))
+                        {
+                                if(xSemaphoreTake(semaphoreCurrentTimeComplete, 10000*(1.0/(configTICK_RATE_HZ * (.001f)))) == pdTRUE)
+                                {
+                                        //update m_time is complete
+                                }
+                        }
+
+                        time_struct = *localtime(&m_time);
+                        char* test = malloc(11 * sizeof(char));
+                        test[0] = time_struct.tm_mon/10 + 48;
+                        test[1] = time_struct.tm_mon%10 + 48;
+                        test[2] = ' ';
+                        test[3] = time_struct.tm_mday/10 + 48;
+                        test[4] = time_struct.tm_mday%10 + 48;
+                        test[5] = ' ';
+                        uint16_t year = time_struct.tm_year + 1900;
+                        test[9] = year%10 + 48;
+                        year -= year%10;
+                        test[8] = (year%100)/10 + 48;
+                        year -= year%100;
+                        test[7] = (year%1000)/100 + 48;
+                        year -= year%1000;
+                        test[6] = year/1000 + 48;
+                        test[10] = '\0';
+                        if(xQueueSend(sendMessageQueue, &test, 10) != pdTRUE)
+                        {
+                                free(test);
+                        }
+                }else
 		{
 			free(message);
                         char* test = malloc(2 * sizeof(char));

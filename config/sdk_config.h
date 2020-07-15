@@ -52,7 +52,7 @@
 
 #define PIN_OUT_MOTOR_SLEEP 12
 #define PIN_OUT_MOTOR_MODE 13
-#define PIN_OUT 17
+#define PIN_OUT 14
 #define PIN_IN 16
 
 
@@ -7665,7 +7665,7 @@
 // <e> NRF_LOG_ENABLED - nrf_log - Logger
 //==========================================================
 #ifndef NRF_LOG_ENABLED
-#define NRF_LOG_ENABLED 1
+#define NRF_LOG_ENABLED 0
 #endif
 // <h> Log message pool - Configuration of log message pool
 

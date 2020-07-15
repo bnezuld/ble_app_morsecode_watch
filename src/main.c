@@ -1692,7 +1692,9 @@ int main(void)
     freertos_init.ReplyToNotification = ReplyToNotification;
     freertos_init.writeSensorData = writeSensorData;
     freertos_init.readSensorData = readSensorData;
+#if NRF_LOG_ENABLED
     freertos_init.m_logger_thread = m_logger_thread;
+#endif
     freertos_init.eventHandler = freertos_event_handler;
     nrf_sdh_freertos_init(advertising_start, &erase_bonds, &freertos_init);
 

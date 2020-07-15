@@ -820,7 +820,9 @@ void nrf_sdh_freertos_init(nrf_sdh_freertos_task_hook_t hook_fn, void * p_contex
     replyToNotification_hook = freertos_init->ReplyToNotification;
     writeSensorData_hook = freertos_init->writeSensorData;
     readSensorData_hook = freertos_init->readSensorData;
+#if NRF_LOG_ENABLED
     m_logger_thread = freertos_init->m_logger_thread;
+#endif
     eventHandler = freertos_init->eventHandler;
 
     /* Create the timer(s) */

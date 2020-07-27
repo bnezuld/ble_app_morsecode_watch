@@ -1,0 +1,9 @@
+@startuml
+
+Watch -> TimerDisplayOn : displayQueue add int values \nrepresenting how many times each timer will cycle through. \nstarting with displayOn
+loop untill displayQueue is empty
+TimerDisplayOn -> TimerDisplayOff : decrement the displayQueue value each timer interrupt till 0
+TimerDisplayOff -> TimerDisplayOn : decrement the displayQueue value each timer interrupt till 0
+end
+
+@enduml

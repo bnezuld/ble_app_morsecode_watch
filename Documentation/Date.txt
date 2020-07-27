@@ -1,0 +1,15 @@
+@startuml
+
+actor User
+Watch -> Watch : RTC timer triggered every 60 seconds incrementing time
+User -> Watch : Type 'D'
+Watch_GATT -> Phone_GATT : attempt GATT Read request CURRENT_TIME_CHARACTERISTIC
+Phone_GATT -> Watch_GATT : reply with Current Time
+Watch_GATT -> Watch : update Time if GATT Read Successful
+Watch -> User : Display Date
+
+
+legend center
+CURRENT_TIME_CHARACTERISTIC UUID: 0x2902
+end legend
+@enduml

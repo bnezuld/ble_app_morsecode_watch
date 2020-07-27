@@ -1,0 +1,62 @@
+watch start up
+1.initialization of timers, GPIO, TWI(I2C), Gatt server and the soft device. then start FreeRTOS
+2.on connection will discover advertised services
+3.allows BLE services to start if all required services are there(checks for each individual service)
+
+
+phone start up:
+1. scan for devices, lasting for xxxx time
+2. connect to devicethrough xxxx handler
+3. gatt server is started
+	a. starts advertising services
+
+Menu
+1.N
+
+communication between phone and watch
+
+
+@startuml
+
+actor User
+User -> Watch : Type 'N'
+Watch -> User : Display 'N'
+Watch -> Watch_GATT : GetNewAlert
+loop till reply ContinuedMsg[2] is 0
+Watch_GATT -> Phone_GATT : GATT Write to ALERT_NOTIFICATION_CONTROL
+Phone_GATT -> Phone : get next Queued Msg
+Phone_GATT -> Watch_GATT : Update Notification UUID Description
+end
+Watch_GATT -> Watch : CompletNotification
+Watch -> User : Display notification
+
+
+legend center
+GATT_WriteData[0-19]
+  Command[0](only 4,5,6 used): indicator of what the server should do
+    -ANS_ENABLE_NEW_INCOMING_ALERT_NOTIFICATION(0)                 /**< Enable New Incoming Alert Notification.*/
+    -ANS_ENABLE_UNREAD_CATEGORY_STATUS_NOTIFICATION(1)             /**< Enable Unread Category Status Notification.*/
+    -ANS_DISABLE_NEW_INCOMING_ALERT_NOTIFICATION(2)                /**< Disable New Incoming Alert Notification.*/
+    -ANS_DISABLE_UNREAD_CATEGORY_STATUS_NOTIFICATION(3)            /**< Disable Unread Category Status Notification.*/
+    -ANS_NOTIFY_NEW_INCOMING_ALERT_IMMEDIATELY(4)                  /**< Notify New Incoming Alert immediately.*/
+    -ANS_NOTIFY_UNREAD_CATEGORY_STATUS_IMMEDIATELY(5)              /**< Notify Unread Category Status immediately.*/
+    -ANS_REPLY_NEW_ALERT(6)       /**< Reply with New Alert.*/
+  Catagory[1](Not Used): type of notification
+    -ANS_TYPE_SIMPLE_ALERT = 0,     /**< General text alert or non-text alert.*/
+    -ANS_TYPE_EMAIL = 1,     /**< Email message arrives.*/
+    -ANS_TYPE_NEWS = 2,     /**< News feeds such as RSS, Atom.*/
+    -ANS_TYPE_NOTIFICATION_CALL = 3,     /**< Incoming call.*/
+    -ANS_TYPE_MISSED_CALL = 4,     /**< Missed call.*/
+    -ANS_TYPE_SMS_MMS = 5,     /**< SMS or MMS message arrives.*/
+    -ANS_TYPE_VOICE_MAIL = 6,     /**< Voice mail.*/
+    -ANS_TYPE_SCHEDULE = 7,     /**< Alert that occurs on calendar, planner.*/
+    -ANS_TYPE_HIGH_PRIORITIZED_ALERT = 8,     /**< Alert to be handled as high priority.*/
+    -ANS_TYPE_INSTANT_MESSAGE = 9,     /**< Alert for incoming instant messages.*/
+    -ANS_TYPE_ALL_ALERTS = 0xFF   /**< Identifies all alerts. */
+  ContinuedMsg[2]: indicator if this a partial message and should continue to read
+  Msg[3-19]: the actual message sent
+ALERT_NOTIFICATION_CONTROL UUID: 0x2A44
+NEW_ALERT_CHARACTERISTIC: 0x2a48
+UNREAD_CHARACTERISTIC: 0x2a47
+end legend
+@enduml

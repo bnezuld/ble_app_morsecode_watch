@@ -1,0 +1,18 @@
+@startuml
+
+actor User
+alt Continue
+User -> Watch : Touch Pad Pressed
+Watch -> Watch : Button Pressed Timer starts triggering every 0.1 seconds, turns itself off after max held time
+User -> Watch :  Touch Pad Release
+Watch -> Watch : Button Release Timer starts triggering every 0.1 seconds, turns itself off after max release time
+else Button Release Timers tick is Past GetSpaceUnit(SPACE_UNITS_END_OF_MESSAGE)
+Watch -> Watch : Translates input
+Watch -> Watch : Processes Translated sentence
+end
+
+legend center
+SPACE_UNITS_END_OF_MESSAGE: used to Determin if the sentence typed is over and ready for Translation and processing
+GetSpaceUnit: returns the number of timer ticks till it hits a certain amount
+end legend
+@enduml

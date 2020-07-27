@@ -1,0 +1,23 @@
+@startuml
+
+actor User
+User -> Watch : Type 'S'
+Watch -> User : Display 'S'
+User -> Watch : Type Number 1-99
+alt Input incorrect
+
+  Watch -> User : Display 'I'
+
+else some kind of failure
+
+  Watch -> Watch : Update Space Unit Modifier
+  Watch -> EEPROM : save number to 0x0080
+  Watch -> User : Display 'E'
+
+end
+
+legend center
+EEPROM I2C address: 0x50
+Space Unit Modifier: variable used to determine the time between letters, words, and sentence end
+end legend
+@enduml

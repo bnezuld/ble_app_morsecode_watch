@@ -1,0 +1,271 @@
+@startuml
+
+skinparam linetype polyline
+skinparam linetype ortho
+skinparam arrowThickness 3
+skinparam arrowColor #blue
+
+package semaphores #Orange{
+component SemaphoreButtonPress
+component SemaphorePressActive
+
+component SemaphoreButtonRelease
+component SemaphoreReleaseActive
+  component SemaphoreCompleteNotificationMsg 
+  component semaphoreCurrentTimeComplete
+  component semaphoreSendMessge
+  }
+
+package Queue #Orange{
+  component buttonQueue
+  component messageQueue
+  component sendMessageQueue
+  component displayQueue
+}
+package ButtonPresses #LightGray{
+package ButtonPress{
+usecase ISRButtonPress
+usecase TakeSemaphorePressActive
+usecase GiveSemaphoreButtonPress
+usecase DisplayOn
+}
+
+package ButtonRelease{
+usecase ISRButtonRelease
+usecase TakeSemaphoreReleaseActive
+usecase GiveSemaphoreButtonRelease
+usecase DisplayOff
+}
+}
+
+package PollingTask #lightyellow{
+usecase GetReleaseTime
+usecase TakeSemaphoreButtonPress
+usecase GiveSemaphoreReleaseActive
+usecase PressedTimer
+usecase TakeSemaphoreButtonRelease
+usecase GiveSemaphorePressedActive
+usecase getPressedTime
+usecase ReleaseTimer
+}
+
+package RecordButtonPress #lightyellow{
+  usecase TakeButtonQueue 
+  usecase CallAddButtonPress
+}
+
+package TranslateMorseCode{
+  usecase AddButtonPress
+  usecase TranslateSelf
+  component "button[MAX_MORSECODE]" as button
+  
+  usecase "TranslateToMorseCode()" as MethodTranslateToMorseCode
+  usecase SetSpaceUnitModifier
+}
+
+package translate{
+usecase "TranslateMorseCode()" as MethodTranslateMorseCode
+usecase QueueMessageQueue
+}
+
+package Menu #lightyellow{
+  usecase TakeMessageQueue
+  package Notification{
+        usecase "Message 'N'" as N
+    usecase "Disaply 'N'" as DisplayN
+    usecase GetNewAlerts
+    usecase takeSemaphoreCompleteNotificationMsg
+    usecase QueueNotificationMsg
+  }
+  package Reply{
+    usecase "Message 'R'" as R
+	usecase DisplayR
+	usecase TakeMessageQueueR
+	usecase SendReply
+  }
+  package Settings{
+        usecase "Message 'S'" as S
+		usecase DisplayS
+		usecase TakeMessageQueueS
+		usecase "DisplayI/E" as DisplayIES
+		usecase UpdateSpaceUnitModifier
+  }
+  package Date{
+        usecase "Message 'D'" as D		
+usecase GetTimeD
+usecase takeSemaphoreCurrentTimeCompleteD
+usecase DisplayDate
+  }
+  package Time{
+        usecase "Message 'T'" as T
+		usecase GetTimeT
+usecase takeSemaphoreCurrentTimeCompleteT
+usecase DisplayTime
+  }
+  package Interrupt{
+        usecase "Message 'I'" as I		
+		usecase stopSendMessage
+		usecase ClearDisplayQueue
+  }
+}
+
+package SendMessage #lightyellow{
+  usecase TakeSendMessageQueue
+  usecase TakeSemaphoreSendMessge
+  usecase TranslateMessageToMorseCode
+    usecase GiveDisplayQueue
+  package DisplayOffTimer{
+    usecase DisplayOff
+    usecase DecrimentTimerCount as DisplayOffTimerDecrimentTimerCount
+    usecase TakeDisplayQueue as DisplayOffTimerTakeDisplayQueue
+    usecase StartDisplayOnTimer
+    usecase GiveSemaphoreSendMessge as DisplayOffTimerGiveSemaphoreSendMessge
+  }
+  package DisplayOnTimer{
+    usecase DisplayOn
+    usecase DecrimentTimerCount as DisplayOnTimerDecrimentTimerCount
+    usecase TakeDisplayQueue as DisplayOnTimerTakeDisplayQueue
+    usecase StartDisplayOffTimer
+    usecase GiveSemaphoreSendMessge as DisplayOnTimerGiveSemaphoreSendMessge
+  }
+}
+
+package GattServer #Cyan{
+  usecase GattWriteRequest
+  usecase GattUpdateCharateristicNotification
+  usecase giveSemaphoreCompleteNotificationMsg
+  usecase GattReadRequest
+  usecase GattReadResponse
+}
+
+package UpdateTimecallback{
+usecase updateTime
+usecase giveSemaphoreCurrentTimeComplete
+}
+
+
+
+ISRButtonPress -right-> DisplayOn
+DisplayOn -right-> TakeSemaphorePressActive
+SemaphorePressActive -[#red]up-> TakeSemaphorePressActive
+TakeSemaphorePressActive -right-> GiveSemaphoreButtonPress
+GiveSemaphoreButtonPress -[#green]down-> SemaphoreButtonPress
+
+
+ISRButtonRelease -right-> DisplayOff
+DisplayOff -right-> TakeSemaphoreReleaseActive
+SemaphoreReleaseActive -[#red]up-> TakeSemaphoreReleaseActive
+TakeSemaphoreReleaseActive -right-> GiveSemaphoreButtonRelease
+GiveSemaphoreButtonRelease -[#green]down-> SemaphoreButtonRelease
+
+GetReleaseTime -down-> TakeSemaphoreButtonPress
+GetReleaseTime -[#green]down-> buttonQueue
+SemaphoreButtonPress -[#red]up-> TakeSemaphoreButtonPress
+TakeSemaphoreButtonPress -down-> GiveSemaphoreReleaseActive
+GiveSemaphoreReleaseActive -[#green]down-> SemaphoreReleaseActive
+GiveSemaphoreReleaseActive -down-> PressedTimer
+PressedTimer --> PressedTimer
+PressedTimer -down-> getPressedTime
+getPressedTime -down-> TakeSemaphoreButtonRelease
+getPressedTime -[#green]down-> buttonQueue
+SemaphoreButtonRelease -[#red]up-> TakeSemaphoreButtonRelease
+TakeSemaphoreButtonRelease --> GiveSemaphorePressedActive
+GiveSemaphorePressedActive -[#green]down-> SemaphorePressActive
+GiveSemaphorePressedActive -down-> ReleaseTimer
+ReleaseTimer --> ReleaseTimer
+ReleaseTimer --> GetReleaseTime
+
+ReleaseTimer --> MethodTranslateMorseCode
+MethodTranslateMorseCode --> TranslateSelf
+TranslateSelf --> QueueMessageQueue
+QueueMessageQueue -[#green]down-> messageQueue
+
+buttonQueue -[#red]up-> TakeButtonQueue
+CallAddButtonPress --> AddButtonPress
+AddButtonPress --> button
+TranslateSelf --> button
+
+messageQueue -[#red]up-> TakeMessageQueue
+TakeMessageQueue --> N
+N --> DisplayN
+DisplayN -[#green]down-> sendMessageQueue
+DisplayN --> GetNewAlerts
+GetNewAlerts --> takeSemaphoreCompleteNotificationMsg
+GetNewAlerts--> GattWriteRequest
+GattUpdateCharateristicNotification --> giveSemaphoreCompleteNotificationMsg
+giveSemaphoreCompleteNotificationMsg -[#green]-> SemaphoreCompleteNotificationMsg
+
+SemaphoreCompleteNotificationMsg  -[#red]-> takeSemaphoreCompleteNotificationMsg 
+takeSemaphoreCompleteNotificationMsg --> QueueNotificationMsg
+QueueNotificationMsg -[#green]down-> sendMessageQueue
+
+TakeMessageQueue --> R
+R --> DisplayR
+DisplayR -[#green]down-> sendMessageQueue
+DisplayR --> TakeMessageQueueR
+messageQueue -[#red]up-> TakeMessageQueueR
+TakeMessageQueueR --> SendReply
+SendReply --> GattWriteRequest
+
+TakeMessageQueue --> S
+S --> DisplayS
+DisplayS -[#green]down-> sendMessageQueue
+DisplayS --> TakeMessageQueueS
+messageQueue -[#red]up-> TakeMessageQueueS
+TakeMessageQueueS --> UpdateSpaceUnitModifier
+UpdateSpaceUnitModifier --> SetSpaceUnitModifier
+UpdateSpaceUnitModifier --> DisplayIES
+DisplayIES -[#green]down-> sendMessageQueue
+
+TakeMessageQueue --> D
+D --> GetTimeD
+GetTimeD --> GattReadRequest
+GetTimeD --> takeSemaphoreCurrentTimeCompleteD
+semaphoreCurrentTimeComplete -[#red]-> takeSemaphoreCurrentTimeCompleteD
+takeSemaphoreCurrentTimeCompleteD --> DisplayDate
+DisplayDate -[#green]down-> sendMessageQueue
+
+GattReadResponse --> updateTime
+updateTime --> giveSemaphoreCurrentTimeComplete
+giveSemaphoreCurrentTimeComplete -[#green]down-> semaphoreCurrentTimeComplete
+
+TakeMessageQueue --> T
+T --> GetTimeT
+GetTimeT --> GattReadRequest
+GetTimeT --> takeSemaphoreCurrentTimeCompleteT
+semaphoreCurrentTimeComplete -[#red]up-> takeSemaphoreCurrentTimeCompleteT
+takeSemaphoreCurrentTimeCompleteT --> DisplayTime
+DisplayTime -[#green]down-> sendMessageQueue
+
+
+semaphoreSendMessge -[#red]up-> TakeSemaphoreSendMessge
+TakeSemaphoreSendMessge --> TakeSendMessageQueue
+sendMessageQueue -[#red]up-> TakeSendMessageQueue
+TakeSendMessageQueue --> TranslateMessageToMorseCode
+TranslateMessageToMorseCode --> MethodTranslateToMorseCode
+TranslateMessageToMorseCode --> GiveDisplayQueue
+GiveDisplayQueue -[#green]down-> displayQueue
+GiveDisplayQueue --> DisplayOffTimerDecrimentTimerCount
+
+DisplayOffTimerDecrimentTimerCount --> DisplayOffTimerDecrimentTimerCount
+DisplayOffTimerDecrimentTimerCount --> DisplayOffTimerTakeDisplayQueue
+displayQueue -[#red]up-> DisplayOffTimerTakeDisplayQueue
+DisplayOffTimerTakeDisplayQueue --> StartDisplayOnTimer
+StartDisplayOnTimer --> DisplayOnTimerDecrimentTimerCount
+DisplayOffTimerTakeDisplayQueue --> DisplayOffTimerGiveSemaphoreSendMessge:if displayQueue is empty
+DisplayOffTimerGiveSemaphoreSendMessge -[#green]down-> semaphoreSendMessge
+
+DisplayOnTimerDecrimentTimerCount --> DisplayOnTimerDecrimentTimerCount
+DisplayOnTimerDecrimentTimerCount --> DisplayOnTimerTakeDisplayQueue
+displayQueue -[#red]up-> DisplayOnTimerTakeDisplayQueue
+DisplayOnTimerTakeDisplayQueue --> StartDisplayOffTimer
+StartDisplayOffTimer --> DisplayOffTimerDecrimentTimerCount
+DisplayOnTimerTakeDisplayQueue --> DisplayOnTimerGiveSemaphoreSendMessge:if displayQueue is empty
+DisplayOnTimerGiveSemaphoreSendMessge -[#green]down-> semaphoreSendMessge
+
+TakeMessageQueue --> I
+I --> stopSendMessage
+stopSendMessage --> ClearDisplayQueue
+
+
+@enduml

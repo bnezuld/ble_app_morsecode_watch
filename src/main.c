@@ -103,10 +103,6 @@
 #include "ble_cts_c.h"
 #include "ble_date_time.h"
 
-#include "ble_dfu.h"
-#include "nrf_bootloader_info.h"
-#include "nrf_power.h"
-
 
 
 
@@ -864,27 +860,6 @@ static void current_time_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
-static void ble_dfu_buttonless_evt_handler(ble_dfu_buttonless_evt_type_t event)
-{
-    switch (event)
-    {
-        case BLE_DFU_EVT_BOOTLOADER_ENTER_PREPARE:
-            NRF_LOG_INFO("Device is preparing to enter bootloader mode\r\n");
-            break;
-        
-        case BLE_DFU_EVT_BOOTLOADER_ENTER:
-            NRF_LOG_INFO("Device will enter bootloader mode\r\n");
-            break;
-        
-        case BLE_DFU_EVT_BOOTLOADER_ENTER_FAILED:
-            NRF_LOG_ERROR("Device will enter bootloader mode\r\n");
-            break;
-        default:
-            NRF_LOG_INFO("Unknown event from ble_dfu.\r\n");
-            break;
-    }
-}
-
 
 /**@brief Function for initializing services that will be used by the application.
  *
@@ -967,14 +942,6 @@ static void services_init(void)
     cts_init.error_handler = current_time_error_handler;
     cts_init.p_gatt_queue  = &m_ble_gatt_queue;
     err_code               = ble_cts_c_init(&m_cts_c, &cts_init);
-    APP_ERROR_CHECK(err_code);
-
-    ble_dfu_buttonless_init_t dfus_init =
-    {
-        .evt_handler = ble_dfu_buttonless_evt_handler
-    };
-    
-    err_code = ble_dfu_buttonless_init(&dfus_init);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -1111,24 +1078,6 @@ static void sleep_mode_enter()
 {
     nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
-
-static void buttonless_dfu_sdh_state_observer(nrf_sdh_state_evt_t state, void * p_context)
-{
-    if (state == NRF_SDH_EVT_STATE_DISABLED)
-    {
-        // Softdevice was disabled before going into reset. Inform bootloader to skip CRC on next boot.
-        nrf_power_gpregret2_set(BOOTLOADER_DFU_SKIP_CRC);
-
-        //Go to system off.
-        nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
-    }
-}
-
-/* nrf_sdh state observer. */
-NRF_SDH_STATE_OBSERVER(m_buttonless_dfu_state_obs, 0) =
-{
-    .handler = buttonless_dfu_sdh_state_observer,
-};
 
 
 /**@brief Function for handling advertising events.
@@ -1679,15 +1628,10 @@ static void rtc_config(void)
 int main(void)
  {
     bool erase_bonds;
-    ret_code_t err_code;
 
     // Initialize modules.
     log_init();
     clock_init();
-
-    // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
-    err_code = ble_dfu_buttonless_async_svci_init();
-    APP_ERROR_CHECK(err_code);
 
     // Do not start any interrupt that uses system functions before system initialisation.
     // The best solution is to start the OS before any other initalisation.
@@ -1725,7 +1669,7 @@ int main(void)
 
 
 //used to test the clock frequency
-    err_code = sd_clock_hfclk_request();
+    ret_code_t err_code = sd_clock_hfclk_request();
     
     APP_ERROR_CHECK(err_code);
     uint32_t hfclk_is_running = 0;

@@ -107,6 +107,8 @@
 #include "nrf_bootloader_info.h"
 #include "nrf_power.h"
 
+#include "nrf_bootloader_dfu_timers.h"
+
 
 
 
@@ -1663,15 +1665,33 @@ static void rtc_config(void)
     nrf_drv_clock_lfclk_request(NULL);
 
     // Configure the RTC for 1 minute wakeup (default)
-    NRF_RTC2->PRESCALER = 0xFFF;
-    NRF_RTC2->EVTENSET = RTC_EVTENSET_COMPARE0_Msk;
-    NRF_RTC2->INTENSET = RTC_INTENSET_COMPARE0_Msk;
-    NRF_RTC2->CC[0] = 60 * 8;
-    NRF_RTC2->TASKS_START = 1;
+    NRF_RTC0->PRESCALER = 0xFFF;
+    NRF_RTC0->EVTENSET = RTC_EVTENSET_COMPARE0_Msk;
+    NRF_RTC0->INTENSET = RTC_INTENSET_COMPARE0_Msk;
+    NRF_RTC0->CC[0] = 60 * 8;
+    NRF_RTC0->TASKS_START = 1;
 
 
-    NVIC_SetPriority(RTC2_IRQn, configKERNEL_INTERRUPT_PRIORITY);
-    NVIC_EnableIRQ(RTC2_IRQn);
+    NVIC_SetPriority(RTC0_IRQn, configKERNEL_INTERRUPT_PRIORITY);
+    NVIC_EnableIRQ(RTC0_IRQn);
+}
+
+/**
+ * @brief Function notifies certain events in DFU process.
+ */
+static void dfu_observer(nrf_dfu_evt_type_t evt_type)
+{
+    switch (evt_type)
+    {
+        case NRF_DFU_EVT_DFU_FAILED:
+        case NRF_DFU_EVT_DFU_ABORTED:
+        case NRF_DFU_EVT_DFU_INITIALIZED:
+        case NRF_DFU_EVT_TRANSPORT_ACTIVATED:
+        case NRF_DFU_EVT_DFU_STARTED:
+            break;
+        default:
+            break;
+    }
 }
 
 /**@brief Function for application main entry.
@@ -1687,6 +1707,23 @@ int main(void)
 
     // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
     err_code = ble_dfu_buttonless_async_svci_init();
+    APP_ERROR_CHECK(err_code);
+
+      // Must happen before flash protection is applied, since it edits a protected page.
+    nrf_bootloader_mbr_addrs_populate();
+
+    // Protect MBR and bootloader code from being overwritten.
+    err_code = nrf_bootloader_flash_protect(0, MBR_SIZE);
+    APP_ERROR_CHECK(err_code);
+    err_code = nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE);
+    APP_ERROR_CHECK(err_code);
+
+    (void) NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
+
+    NRF_LOG_INFO("Inside main");
+
+    err_code = nrf_bootloader_init(dfu_observer);
     APP_ERROR_CHECK(err_code);
 
     // Do not start any interrupt that uses system functions before system initialisation.

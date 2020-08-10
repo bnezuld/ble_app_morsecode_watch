@@ -638,13 +638,13 @@ void POST_SLEEP_PROCESSING(TickType_t ticks)
     eventHandler(ENABLE_UART);
 }
 
-void RTC2_IRQHandler(void)
+void RTC0_IRQHandler(void)
 {
-    if(NRF_RTC2->EVENTS_COMPARE[0])
+    if(NRF_RTC0->EVENTS_COMPARE[0])
     {
-        NRF_RTC2->EVENTS_COMPARE[0] = 0;
+        NRF_RTC0->EVENTS_COMPARE[0] = 0;
         
-        NRF_RTC2->TASKS_CLEAR = 1;
+        NRF_RTC0->TASKS_CLEAR = 1;
         
         m_time += 60;
         //if(cal_event_callback) cal_event_callback();

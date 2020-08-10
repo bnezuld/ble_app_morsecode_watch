@@ -60,6 +60,7 @@
 #include "sdk_errors.h"
 #include "app_util.h"
 #include "sdk_macros.h"
+#include "nrf_dfu_types.h"
 
 #ifdef __cplusplus
 extern "C" {

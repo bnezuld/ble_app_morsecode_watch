@@ -1,20 +1,12 @@
 MEMORY
 {
   UNPLACED_SECTIONS (wx) : ORIGIN = 0x100000000, LENGTH = 0
-  uicr_mbr_params_page (wx) : ORIGIN = 0x10001018, LENGTH = 0x00000004
-  uicr_bootloader_start_address (wx) : ORIGIN = 0x10001014, LENGTH = 0x00000004
   RAM (wx) : ORIGIN = 0x20000000, LENGTH = 0x00010000
   FLASH (wx) : ORIGIN = 0x00000000, LENGTH = 0x00080000
 }
 
 SECTIONS
 {
-  __uicr_mbr_params_page_segment_start__ = 0x10001018;
-  __uicr_mbr_params_page_segment_end__ = 0x1000101c;
-  __uicr_mbr_params_page_segment_size__ = 0x00000004;
-  __uicr_bootloader_start_address_segment_start__ = 0x10001014;
-  __uicr_bootloader_start_address_segment_end__ = 0x10001018;
-  __uicr_bootloader_start_address_segment_size__ = 0x00000004;
   __RAM_segment_start__ = 0x20000000;
   __RAM_segment_end__ = 0x20010000;
   __RAM_segment_size__ = 0x00010000;
@@ -25,42 +17,6 @@ SECTIONS
   __HEAPSIZE__ = 1024;
   __STACKSIZE_PROCESS__ = 0;
   __STACKSIZE__ = 2048;
-
-  __uicr_mbr_params_page_load_start__ = 0x10001018;
-  .uicr_mbr_params_page 0x10001018 : AT(0x10001018)
-  {
-    __uicr_mbr_params_page_start__ = .;
-    __start_uicr_mbr_params_page =   __uicr_mbr_params_page_start__;
-    KEEP(*(.uicr_mbr_params_page .uicr_mbr_params_page.*))
-    . = ALIGN(MAX(__uicr_mbr_params_page_start__ + 0x4 , .), 4);
-  }
-  __uicr_mbr_params_page_end__ = __uicr_mbr_params_page_start__ + SIZEOF(.uicr_mbr_params_page);
-  __uicr_mbr_params_page_size__ = SIZEOF(.uicr_mbr_params_page);
-  __stop_uicr_mbr_params_page =   __uicr_mbr_params_page_end__;
-  __uicr_mbr_params_page_load_end__ = __uicr_mbr_params_page_end__;
-
-  __uicr_mbr_params_page_segment_used_end__ = 0x10001018 + SIZEOF(.uicr_mbr_params_page);
-  __uicr_mbr_params_page_segment_used_size__ = __uicr_mbr_params_page_segment_used_end__ - __uicr_mbr_params_page_segment_start__;
-
-  . = ASSERT(__uicr_mbr_params_page_start__ == __uicr_mbr_params_page_end__ || (__uicr_mbr_params_page_end__ - __uicr_mbr_params_page_segment_start__) <= __uicr_mbr_params_page_segment_size__ , "error: .uicr_mbr_params_page is too large to fit in uicr_mbr_params_page memory segment");
-
-  __uicr_bootloader_start_address_load_start__ = 0x10001014;
-  .uicr_bootloader_start_address 0x10001014 : AT(0x10001014)
-  {
-    __uicr_bootloader_start_address_start__ = .;
-    __start_uicr_bootloader_start_address =   __uicr_bootloader_start_address_start__;
-    KEEP(*(.uicr_bootloader_start_address .uicr_bootloader_start_address.*))
-    . = ALIGN(MAX(__uicr_bootloader_start_address_start__ + 0x4 , .), 4);
-  }
-  __uicr_bootloader_start_address_end__ = __uicr_bootloader_start_address_start__ + SIZEOF(.uicr_bootloader_start_address);
-  __uicr_bootloader_start_address_size__ = SIZEOF(.uicr_bootloader_start_address);
-  __stop_uicr_bootloader_start_address =   __uicr_bootloader_start_address_end__;
-  __uicr_bootloader_start_address_load_end__ = __uicr_bootloader_start_address_end__;
-
-  __uicr_bootloader_start_address_segment_used_end__ = 0x10001014 + SIZEOF(.uicr_bootloader_start_address);
-  __uicr_bootloader_start_address_segment_used_size__ = __uicr_bootloader_start_address_segment_used_end__ - __uicr_bootloader_start_address_segment_start__;
-
-  . = ASSERT(__uicr_bootloader_start_address_start__ == __uicr_bootloader_start_address_end__ || (__uicr_bootloader_start_address_end__ - __uicr_bootloader_start_address_segment_start__) <= __uicr_bootloader_start_address_segment_size__ , "error: .uicr_bootloader_start_address is too large to fit in uicr_bootloader_start_address memory segment");
 
   __reserved_ram_load_start__ = 0x20000000;
   .reserved_ram 0x20000000 (NOLOAD) : AT(0x20000000)
